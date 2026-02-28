@@ -3,8 +3,11 @@
 #include <vulkan/vulkan.h>
 #include <iostream>
 
+#include "../headers/core.hxx"
+
 int main(int argc, char *argv[])
 {
+
     // Initialize SDL2
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
@@ -29,6 +32,8 @@ int main(int argc, char *argv[])
     }
 
     std::cout << "Window created: 1280x720" << std::endl;
+
+    Core core(window);
 
     // Main loop
     bool running = true;

@@ -1,4 +1,8 @@
-add_executable(enceladus main.cxx)
+# add all source files for the executable
+add_executable(enceladus
+    main.cxx
+    core.cxx      # core implementation must be compiled
+)
 
 # Link libraries
 target_link_libraries(enceladus
@@ -11,4 +15,5 @@ target_link_libraries(enceladus
 target_include_directories(enceladus
     PRIVATE
         ${PROJECT_SOURCE_DIR}/src
+        ${PROJECT_SOURCE_DIR}/headers   # headers location
 )
