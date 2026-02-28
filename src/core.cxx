@@ -1,6 +1,50 @@
 #include "../headers/core.hxx"
 #include <SDL2/SDL_vulkan.h>
 #include <iostream>
+#include <vector>
+
+const std::vector<const char *> validationLayers = {
+    "VK_LAYER_KHRONOS_validation"};
+
+bool checkValidationLayerSupport()
+{
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+    for (const char *layerName : validationLayers)
+    {
+        bool layerFound = false;
+
+        for (const auto &layerProperties : availableLayers)
+        {
+            if (strcmp(layerName, layerProperties.layerName) == 0)
+            {
+                layerFound = true;
+                break;
+            }
+        }
+
+        if (!layerFound)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool isDeviceSuitable(VkPhysicalDevice device)
+{
+    VkPhysicalDeviceProperties deviceProperties;
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+    return deviceFeatures.geometryShader;
+}
 
 Core::Core(SDL_Window *window)
     : instance(VK_NULL_HANDLE),
@@ -23,6 +67,11 @@ void Core::initVulkan(SDL_Window *window)
 
 void Core::createInstance(SDL_Window *window)
 {
+    /* if (enableValidationLayers && !checkValidationLayerSupport())
+    {
+        throw std::runtime_error("Validation layers requested, but not available!");
+    } */
+
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "Phobos - Vulkan/SDL2";
@@ -59,6 +108,37 @@ void Core::createInstance(SDL_Window *window)
 
 void Core::pickPhysicalDevice()
 {
+
+    unsigned int deviceCount = 0;
+    vkEnumeratePhysicalDevices(this->instance, &deviceCount, nullptr);
+
+    if (deviceCount == 0)
+    {
+        throw std::runtime_error("failed to find GPUs with Vulkan support!");
+    }
+
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(this->instance, &deviceCount, devices.data());
+
+    for (const auto &device : devices)
+    {
+        if (isDeviceSuitable(device))
+        {
+            this->physicalDevice = device;
+            break;
+        }
+    }
+
+    if (this->physicalDevice == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("failed to find a suitable GPU!");
+    }
+    else
+    {
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(this->physicalDevice, &deviceProperties);
+        std::cout << "Selected GPU: " << deviceProperties.deviceName << std::endl;
+    }
 }
 
 void Core::createLogicalDevice()

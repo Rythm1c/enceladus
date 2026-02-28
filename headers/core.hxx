@@ -1,6 +1,12 @@
 #ifndef CORE_HXX
 #define CORE_HXX
 
+#ifdef NDEBUG
+const bool enableValidationLayers = false;
+#else
+const bool enableValidationLayers = true;
+#endif
+
 #include <vulkan/vulkan.h>
 #include <SDL2/SDL.h>
 
@@ -28,5 +34,7 @@ private:
     void createSurface(SDL_Window *);
     void createSwapchain();
 };
+
+bool checkValidationLayerSupport();
 
 #endif
