@@ -2,6 +2,7 @@
 #include <SDL2/SDL_vulkan.h>
 #include <iostream>
 #include <vector>
+#include <optional>
 
 const std::vector<const char *> validationLayers = {
     "VK_LAYER_KHRONOS_validation"};
@@ -143,6 +144,52 @@ void Core::pickPhysicalDevice()
 
 void Core::createLogicalDevice()
 {
+    std::optional<unsigned int> graphicsFamilyIndex;
+
+    unsigned int queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(this->physicalDevice, &queueFamilyCount, nullptr);
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(this->physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+    int i = 0;
+    for (const auto &queueFamily : queueFamilies)
+    {
+        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        {
+            graphicsFamilyIndex = i;
+            break;
+        }
+        i++;
+    }
+
+    if (!graphicsFamilyIndex.has_value())
+    {
+        throw std::runtime_error("failed to find a graphics queue family!");
+    }
+
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = graphicsFamilyIndex.value();
+    queueCreateInfo.queueCount = 1;
+    float queuePriority = 1.0f;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+    VkPhysicalDeviceFeatures deviceFeatures{};
+
+    VkDeviceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pQueueCreateInfos = &queueCreateInfo;
+    createInfo.queueCreateInfoCount = 1;
+    createInfo.pEnabledFeatures = &deviceFeatures;
+
+    if (vkCreateDevice(this->physicalDevice, &createInfo, nullptr, &this->device) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create logical device!");
+    }
+    else
+    {
+        std::cout << "Logical device created successfully" << std::endl;
+    }
 }
 
 void Core::createSurface(SDL_Window *window)
