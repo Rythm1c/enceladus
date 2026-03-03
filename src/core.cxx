@@ -2,7 +2,7 @@
 #include <SDL2/SDL_vulkan.h>
 #include <iostream>
 #include <vector>
-#include <optional>
+#include <set>
 
 const std::vector<const char *> validationLayers = {
     "VK_LAYER_KHRONOS_validation"};
@@ -37,19 +37,13 @@ bool checkValidationLayerSupport()
     return true;
 }
 
-bool isDeviceSuitable(VkPhysicalDevice device)
-{
-    VkPhysicalDeviceProperties deviceProperties;
-    VkPhysicalDeviceFeatures deviceFeatures;
-    vkGetPhysicalDeviceProperties(device, &deviceProperties);
-    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-
-    return deviceFeatures.geometryShader;
-}
-
 Core::Core(SDL_Window *window)
     : instance(VK_NULL_HANDLE),
       physicalDevice(VK_NULL_HANDLE),
+      graphicsFamilyIndex(std::nullopt),
+      presentFamilyIndex(std::nullopt),
+      graphicsQueue(VK_NULL_HANDLE),
+      presentQueue(VK_NULL_HANDLE),
       device(VK_NULL_HANDLE),
       surface(VK_NULL_HANDLE),
       swapchain(VK_NULL_HANDLE)
@@ -60,9 +54,9 @@ Core::Core(SDL_Window *window)
 void Core::initVulkan(SDL_Window *window)
 {
     this->createInstance(window);
+    this->createSurface(window);
     this->pickPhysicalDevice();
     this->createLogicalDevice();
-    this->createSurface(window);
     this->createSwapchain();
 }
 
@@ -121,13 +115,58 @@ void Core::pickPhysicalDevice()
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(this->instance, &deviceCount, devices.data());
 
+    std::optional<unsigned int> _graphicsFamilyIndex;
+    std::optional<unsigned int> _presentFamilyIndex;
+
     for (const auto &device : devices)
     {
-        if (isDeviceSuitable(device))
+        VkPhysicalDeviceProperties deviceProperties;
+        VkPhysicalDeviceFeatures deviceFeatures;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+        unsigned int queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+        int i = 0;
+        for (const auto &queueFamily : queueFamilies)
+        {
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+            if (presentSupport)
+            {
+                _presentFamilyIndex = i;
+            }
+
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            {
+                _graphicsFamilyIndex = i;
+                break;
+            }
+            i++;
+        }
+
+        if (deviceFeatures.geometryShader &&
+            _graphicsFamilyIndex.has_value() &&
+            _presentFamilyIndex.has_value())
         {
             this->physicalDevice = device;
+            this->graphicsFamilyIndex = _graphicsFamilyIndex;
+            this->presentFamilyIndex = _presentFamilyIndex;
             break;
         }
+    }
+
+    if (!graphicsFamilyIndex.has_value())
+    {
+        throw std::runtime_error("failed to find a graphics queue family!");
+    }
+
+    if (!presentFamilyIndex.has_value())
+    {
+        throw std::runtime_error("failed to find a present queue family!");
     }
 
     if (this->physicalDevice == VK_NULL_HANDLE)
@@ -144,42 +183,29 @@ void Core::pickPhysicalDevice()
 
 void Core::createLogicalDevice()
 {
-    std::optional<unsigned int> graphicsFamilyIndex;
 
-    unsigned int queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(this->physicalDevice, &queueFamilyCount, nullptr);
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(this->physicalDevice, &queueFamilyCount, queueFamilies.data());
-
-    int i = 0;
-    for (const auto &queueFamily : queueFamilies)
-    {
-        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-        {
-            graphicsFamilyIndex = i;
-            break;
-        }
-        i++;
-    }
-
-    if (!graphicsFamilyIndex.has_value())
-    {
-        throw std::runtime_error("failed to find a graphics queue family!");
-    }
-
-    VkDeviceQueueCreateInfo queueCreateInfo{};
-    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = graphicsFamilyIndex.value();
-    queueCreateInfo.queueCount = 1;
     float queuePriority = 1.0f;
-    queueCreateInfo.pQueuePriorities = &queuePriority;
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    std::set<unsigned int> uniqueQueueFamilies = {
+        this->graphicsFamilyIndex.value(),
+        this->presentFamilyIndex.value()};
+
+    for (unsigned int queueFamily : uniqueQueueFamilies)
+    {
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = queueFamily;
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
 
     VkPhysicalDeviceFeatures deviceFeatures{};
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.pQueueCreateInfos = &queueCreateInfo;
-    createInfo.queueCreateInfoCount = 1;
+    createInfo.pQueueCreateInfos = queueCreateInfos.data();
+    createInfo.queueCreateInfoCount = static_cast<unsigned int>(queueCreateInfos.size());
     createInfo.pEnabledFeatures = &deviceFeatures;
 
     if (vkCreateDevice(this->physicalDevice, &createInfo, nullptr, &this->device) != VK_SUCCESS)
@@ -190,6 +216,9 @@ void Core::createLogicalDevice()
     {
         std::cout << "Logical device created successfully" << std::endl;
     }
+
+    vkGetDeviceQueue(this->device, graphicsFamilyIndex.value(), 0, &this->graphicsQueue);
+    vkGetDeviceQueue(this->device, presentFamilyIndex.value(), 0, &this->presentQueue);
 }
 
 void Core::createSurface(SDL_Window *window)

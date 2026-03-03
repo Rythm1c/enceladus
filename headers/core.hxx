@@ -9,6 +9,7 @@ const bool enableValidationLayers = true;
 
 #include <vulkan/vulkan.h>
 #include <SDL2/SDL.h>
+#include <optional>
 
 class Core
 {
@@ -20,6 +21,10 @@ private:
     VkInstance instance;
 
     VkPhysicalDevice physicalDevice;
+    std::optional<unsigned int> graphicsFamilyIndex;
+    std::optional<unsigned int> presentFamilyIndex;
+    VkQueue graphicsQueue;
+    VkQueue presentQueue;
 
     VkDevice device;
 
