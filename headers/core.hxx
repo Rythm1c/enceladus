@@ -37,7 +37,7 @@ private:
     void pickPhysicalDevice();
     void createLogicalDevice();
     void createSurface(SDL_Window *);
-    void createSwapchain();
+    void createSwapchain(SDL_Window *window);
 };
 
 bool checkValidationLayerSupport();
