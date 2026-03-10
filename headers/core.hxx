@@ -32,12 +32,17 @@ private:
 
     VkSwapchainKHR swapchain;
 
+    std::vector<VkImage> swapChainImages;
+    std::vector<VkImageView> swapChainImageViews;
+
+
     void initVulkan(SDL_Window *);
     void createInstance(SDL_Window *);
+    void createSurface(SDL_Window *);
     void pickPhysicalDevice();
     void createLogicalDevice();
-    void createSurface(SDL_Window *);
     void createSwapchain(SDL_Window *window);
+    void createImageViews();
 };
 
 bool checkValidationLayerSupport();
