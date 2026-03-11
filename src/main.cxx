@@ -20,8 +20,8 @@ int main(int argc, char *argv[])
         // Create SDL2 window
         SDL_Window *window = SDL_CreateWindow(
             "Phobos - Vulkan/SDL2",
-            SDL_WINDOWPOS_CENTERED,
-            SDL_WINDOWPOS_CENTERED,
+            100,
+            100,
             1280,
             720,
             SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
