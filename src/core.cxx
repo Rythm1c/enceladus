@@ -1,7 +1,6 @@
 #include "../headers/core.hxx"
 #include <SDL2/SDL_vulkan.h>
 #include <iostream>
-#include <vector>
 #include <set>
 #include <cstdint>   // Necessary for uint32_t
 #include <limits>    // Necessary for std::numeric_limits
@@ -170,10 +169,10 @@ void Core::initVulkan(SDL_Window *window)
 
 void Core::createInstance(SDL_Window *window)
 {
-    /* if (enableValidationLayers && !checkValidationLayerSupport())
+    if (enableValidationLayers && !checkValidationLayerSupport())
     {
         throw std::runtime_error("Validation layers requested, but not available!");
-    } */
+    }
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -359,6 +358,9 @@ void Core::createSwapchain(SDL_Window *window)
     SwapChainSupportDetails swapChainSupport = querySwapChainSupport(this->physicalDevice, this->surface);
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+    // remember the final format for later image‑view creation
+    this->swapChainImageFormat = surfaceFormat.format;
+
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
     VkExtent2D extent = chooseSwapExtent(window, swapChainSupport.capabilities);
 
@@ -428,7 +430,7 @@ void Core::createImageViews()
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         createInfo.image = this->swapChainImages[i];
         createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.format = swapChainImageFormat;
+        createInfo.format = this->swapChainImageFormat;
         createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
         createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
         createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;

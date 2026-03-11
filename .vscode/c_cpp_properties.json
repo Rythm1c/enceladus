@@ -1,0 +1,61 @@
+{
+    "configurations": [
+        {
+            "name": "Win32-UCRT64",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:/VulkanSDK/1.4.321.1/Include",
+                "C:/libs/SDL2/include",
+                "C:/msys64/ucrt64/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "compilerPath": "C:/msys64/ucrt64/bin/g++.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x64"
+        },
+        {
+            "name": "Win32-MSYS2",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:/VulkanSDK/1.4.321.1/Include",
+                "C:/libs/SDL2/include",
+                "C:/msys64/mingw64/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "compilerPath": "C:/msys64/mingw64/bin/g++.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x64"
+        },
+        {
+            "name": "Win32-MSVC",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:/VulkanSDK/1.4.321.1/Include",
+                "C:/libs/SDL2/include",
+                "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/include",
+                "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt",
+                "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "compilerPath": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "msvc-x64"
+        }
+    ],
+    "version": 4
+}

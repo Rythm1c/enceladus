@@ -10,6 +10,7 @@ const bool enableValidationLayers = true;
 #include <vulkan/vulkan.h>
 #include <SDL2/SDL.h>
 #include <optional>
+#include <vector>
 
 class Core
 {
@@ -31,6 +32,7 @@ private:
     VkSurfaceKHR surface;
 
     VkSwapchainKHR swapchain;
+    VkFormat swapChainImageFormat;          // keep format from swapchain creation
 
     std::vector<VkImage> swapChainImages;
     std::vector<VkImageView> swapChainImageViews;

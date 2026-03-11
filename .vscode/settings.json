@@ -1,0 +1,28 @@
+{
+    "cmake.generator": "Unix Makefiles",
+    "cmake.configureOnOpen": true,
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.preferredGenerators": [
+        "Unix Makefiles"
+    ],
+    "C_Cpp.intelliSenseEngine": "Tag Parser",
+    "files.exclude": {
+        "build/**": true
+    },
+    // integrated terminal profiles -- add MSYS2 shell for convenient builds
+    "terminal.integrated.profiles.windows": {
+        "MSYS2 UCRT64": {
+            "path": "C:\\msys64\\usr\\bin\\bash.exe",
+            "args": [
+                "--login",
+                "-i"
+            ],
+            "env": {
+                "MSYSTEM": "UCRT64",
+                "CHERE_INVOKING": "1"
+            }
+        }
+    },
+    "terminal.integrated.defaultProfile.windows": "MSYS2 UCRT64"
+}
