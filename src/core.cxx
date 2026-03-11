@@ -170,10 +170,14 @@ void Core::initVulkan(SDL_Window *window)
 
 void Core::createInstance(SDL_Window *window)
 {
-    /* if (enableValidationLayers && !checkValidationLayerSupport())
+    if (enableValidationLayers && !checkValidationLayerSupport())
     {
         throw std::runtime_error("Validation layers requested, but not available!");
-    } */
+    }
+    else
+    {
+        std::cout << "Validation layers are supported" << std::endl;
+    }
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
