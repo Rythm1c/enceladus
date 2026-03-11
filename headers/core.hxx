@@ -1,11 +1,11 @@
-#ifndef CORE_HXX
-#define CORE_HXX
-
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
 #else
 const bool enableValidationLayers = true;
 #endif
+
+#ifndef CORE_HXX
+#define CORE_HXX
 
 #include <vulkan/vulkan.h>
 #include <SDL2/SDL.h>
