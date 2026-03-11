@@ -172,7 +172,11 @@ void Core::createInstance(SDL_Window *window)
     if (enableValidationLayers && !checkValidationLayerSupport())
     {
         throw std::runtime_error("Validation layers requested, but not available!");
-    } */
+    }
+    else
+    {
+        std::cout << "Validation layers are " << (enableValidationLayers ? "enabled" : "disabled") << std::endl;
+    }
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
