@@ -18,7 +18,7 @@
             "cppStandard": "c++17",
             "intelliSenseMode": "gcc-x64"
         },
-        {
+        /* {
             "name": "Win32-MSYS2",
             "includePath": [
                 "${workspaceFolder}/**",
@@ -35,7 +35,7 @@
             "cStandard": "c17",
             "cppStandard": "c++17",
             "intelliSenseMode": "gcc-x64"
-        },
+        }, */
         {
             "name": "Win32-MSVC",
             "includePath": [

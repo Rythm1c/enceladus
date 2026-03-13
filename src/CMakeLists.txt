@@ -2,6 +2,7 @@
 add_executable(enceladus
     main.cxx
     core.cxx      # core implementation must be compiled
+    pipeline.cxx
 )
 
 # Link libraries

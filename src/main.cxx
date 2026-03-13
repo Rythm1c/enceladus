@@ -7,70 +7,77 @@
 
 int main(int argc, char *argv[])
 {
-    try
-    {
 
-        // Initialize SDL2
-        if (SDL_Init(SDL_INIT_VIDEO) < 0)
-        {
-            std::cerr << "Failed to initialize SDL2: " << SDL_GetError() << std::endl;
-            return 1;
-        }
+	try
+	{
 
-        // Create SDL2 window
-        SDL_Window *window = SDL_CreateWindow(
-            "Phobos - Vulkan/SDL2",
-            100,
-            100,
-            1280,
-            720,
-            SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
+		// Initialize SDL2
+		if (SDL_Init(SDL_INIT_VIDEO) < 0)
+		{
+			std::cerr << "Failed to initialize SDL2: " << SDL_GetError() << std::endl;
+			return 1;
+		}
 
-        if (!window)
-        {
-            std::cerr << "Failed to create window: " << SDL_GetError() << std::endl;
-            SDL_Quit();
-            return 1;
-        }
+		int window_width = 800;
+		int window_height = 600;
 
-        std::cout << "Window created: 1280x720" << std::endl;
+		// Create SDL2 window
+		SDL_Window *window = SDL_CreateWindow(
+			"Enceladus-Vulkan||SDL2",
+			100,
+			100,
+			window_width,
+			window_height,
+			SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
 
-        Core core(window);
+		if (!window)
+		{
+			std::cerr << "Failed to create window: " << SDL_GetError() << std::endl;
+			SDL_Quit();
+			return 1;
+		}
 
-        // Main loop
-        bool running = true;
-        SDL_Event event;
+		std::cout << "Window created: " << window_width << "x" << window_height << std::endl;
 
-        while (running)
-        {
-            while (SDL_PollEvent(&event))
-            {
-                switch (event.type)
-                {
-                case SDL_QUIT:
-                    running = false;
-                    break;
-                case SDL_KEYDOWN:
-                    if (event.key.keysym.sym == SDLK_ESCAPE)
-                    {
-                        running = false;
-                    }
-                    break;
-                }
-            }
+		Core core(window);
 
-            // TODO: Render Vulkan frame here
-        }
+		// Main loop
+		bool running = true;
+		SDL_Event event;
 
-        // Cleanup
+		while (running)
+		{
+			while (SDL_PollEvent(&event))
+			{
+				switch (event.type)
+				{
+				case SDL_QUIT:
+					running = false;
+					break;
+				case SDL_KEYDOWN:
+					if (event.key.keysym.sym == SDLK_ESCAPE)
+					{
+						running = false;
+					}
+					break;
+				}
+			}
 
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << "Exception caught: " << e.what() << std::endl;
-        return 1;
-    }
-    return 0;
+			{
+				// TODO: Render Vulkan frame here
+			}
+		}
+
+		// Cleanup
+
+		SDL_DestroyWindow(window);
+		SDL_Quit();
+	}
+
+	catch (const std::exception &e)
+	{
+		std::cerr << "Exception caught: " << e.what() << std::endl;
+		return 1;
+	}
+	return 0;
 }

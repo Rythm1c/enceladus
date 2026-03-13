@@ -43,6 +43,19 @@ REM Build the project
 echo Building project...
 cmake --build .
 
+REM Compile shaders if glslangValidator is available
+if exist "C:\VulkanSDK\1.4.321.1\Bin\glsl.exe" (
+    echo Compiling shaders...
+    if not exist "build\shaders" (
+        mkdir build\shaders
+    )
+    "C:\VulkanSDK\1.4.321.1\Bin\glslc.exe" shaders\shader.vert -o build\shaders\shader.vert.spv
+    "C:\VulkanSDK\1.4.321.1\Bin\glslc.exe" shaders\shader.frag -o build\shaders\shader.frag.spv
+    echo Shaders compiled to build\shaders\
+) else (
+    echo glslangValidator not found at C:\VulkanSDK\1.4.321.1\Bin\glslangValidator.exe. Install Vulkan SDK or update the path.
+)
+
 REM Return to project root
 cd ..
 

@@ -15,36 +15,35 @@ const bool enableValidationLayers = true;
 class Core
 {
 public:
-    Core(SDL_Window *);
-    ~Core() {};
+	Core(SDL_Window *);
+	~Core() {};
 
 private:
-    VkInstance instance;
+	VkInstance instance;
 
-    VkPhysicalDevice physicalDevice;
-    std::optional<unsigned int> graphicsFamilyIndex;
-    std::optional<unsigned int> presentFamilyIndex;
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
+	VkPhysicalDevice physicalDevice;
+	std::optional<unsigned int> graphicsFamilyIndex;
+	std::optional<unsigned int> presentFamilyIndex;
+	VkQueue graphicsQueue;
+	VkQueue presentQueue;
 
-    VkDevice device;
+	VkDevice device;
 
-    VkSurfaceKHR surface;
+	VkSurfaceKHR surface;
 
-    VkSwapchainKHR swapchain;
-    VkFormat swapChainImageFormat;          // keep format from swapchain creation
+	VkSwapchainKHR swapchain;
+	VkFormat swapChainImageFormat; // keep format from swapchain creation
 
-    std::vector<VkImage> swapChainImages;
-    std::vector<VkImageView> swapChainImageViews;
+	std::vector<VkImage> swapChainImages;
+	std::vector<VkImageView> swapChainImageViews;
 
-
-    void initVulkan(SDL_Window *);
-    void createInstance(SDL_Window *);
-    void createSurface(SDL_Window *);
-    void pickPhysicalDevice();
-    void createLogicalDevice();
-    void createSwapchain(SDL_Window *window);
-    void createImageViews();
+	void initVulkan(SDL_Window *);
+	void createInstance(SDL_Window *);
+	void createSurface(SDL_Window *);
+	void pickPhysicalDevice();
+	void createLogicalDevice();
+	void createSwapchain(SDL_Window *window);
+	void createImageViews();
 };
 
 bool checkValidationLayerSupport();
