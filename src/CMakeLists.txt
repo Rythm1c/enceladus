@@ -1,7 +1,7 @@
 # add all source files for the executable
 add_executable(enceladus
     main.cxx
-    core.cxx      # core implementation must be compiled
+    core.cxx
     pipeline.cxx
 )
 
