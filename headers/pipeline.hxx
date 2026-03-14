@@ -1,12 +1,17 @@
 #ifndef PIPELINE_HXX
 #define PIPELINE_HXX
 
+#include <vulkan/vulkan.h>
+
 class Pipeline
 {
 
+    VkPipelineLayout layout;
+    VkPipeline handle;
+
 public:
-    Pipeline();
-    ~Pipeline();
+    Pipeline(VkDevice device);
+    ~Pipeline() {}
 };
 
 #endif

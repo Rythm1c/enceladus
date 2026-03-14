@@ -112,7 +112,6 @@ VkExtent2D chooseSwapExtent(SDL_Window *window, const VkSurfaceCapabilitiesKHR &
     else
     {
         int width, height;
-        // glfwGetFramebufferSize(window, &width, &height);
         SDL_GetWindowSize(window, &width, &height);
 
         VkExtent2D actualExtent = {

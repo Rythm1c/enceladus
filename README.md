@@ -196,45 +196,6 @@ cmake --build build
 
 ---
 
-## Project Structure
-
-```
-enceladus/
-├── CMakeLists.txt          # Root CMake configuration
-├── README.md               # This file
-├── build/                  # Build output (generated, not in git)
-├── src/
-│   ├── CMakeLists.txt      # Source compilation rules
-│   ├── main.cxx            # Application entry point
-│   └── core.cxx            # Core implementation
-├── headers/
-│   └── core.hxx            # Core class definition
-└── external/               # External dependencies (git submodules, if any)
-```
-
----
-
-## Notes
-
-- **Libraries via Package Manager:** Vulkan and SDL2 are installed via your platform's package manager (pacman, apt, brew) and automatically discovered by CMake's `find_package()`
-- **Cross-platform:** The same CMakeLists.txt works on Windows (MSYS2), Linux, and macOS without modification
-- **No hard-coded paths:** The build system is portable and doesn't rely on specific installation directories
-
-## Project Structure
-
-```
-enceladus/
-├── CMakeLists.txt          # Root CMake configuration
-├── README.md               # This file
-├── build/                  # Build output (generated, not in git)
-├── src/
-│   ├── CMakeLists.txt      # Source compilation rules
-│   ├── main.cxx            # Application entry point
-│   └── core.cxx            # Core implementation
-├── headers/
-│   └── core.hxx            # Core class definition
-└── external/               # External dependencies (git submodules, if any)
-```
 
 ## Next Steps
 
