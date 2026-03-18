@@ -4,6 +4,15 @@
 
 set -e  # Exit on error
 
+RUN=false
+
+for args in "$@"; do
+    if [ "$args" == "--run" ]; then
+        RUN=true
+        break
+    fi
+done
+
 echo "Building Enceladus..."
 
 # Create build directory if it doesn't exist
@@ -81,11 +90,22 @@ if [ -f "/c/VulkanSDK/1.4.321.1/Bin/glslc.exe" ]; then
     "/c/VulkanSDK/1.4.321.1/Bin/glslc.exe" ../shaders/shader.vert -o shaders/shader.vert.spv
     "/c/VulkanSDK/1.4.321.1/Bin/glslc.exe" ../shaders/shader.frag -o shaders/shader.frag.spv
     echo "Shaders compiled to build/shaders/"
+elif ! command --version glslc >/dev/null 2>&1; then
+    echo "Compiling shaders..."
+    mkdir -p shaders
+    glslc ../shaders/shader.vert -o shaders/shader.vert.spv
+    glslc ../shaders/shader.frag -o shaders/shader.frag.spv
+    echo "Shaders compiled to build/shaders/"
 else
-    echo "glslc not found at /c/VulkanSDK/1.4.321.1/Bin/glslc.exe. Install Vulkan SDK or update the path."
+    echo "glslc not found!"
 fi
 
 # Return to project root
 cd ..
 
-echo "Build complete! Run with: ./build/src/enceladus"
+#echo "Build complete! Run with: ./build/src/enceladus"
+
+if [ "$RUN" = true ]; then
+    echo "Running Enceladus..."
+    ./build/src/enceladus
+fi
