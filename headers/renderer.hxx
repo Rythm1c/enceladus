@@ -2,10 +2,39 @@
 #define RENDERER_HXX
 
 #include "vulkan/vulkan.h"
+#include <vector>
 
-class Renderer{
-    Renderer(){}
-    ~Renderer(){};
+struct RendererConfig
+{
+    VkDevice device;
+    VkRenderPass renderPass;
+    std::vector<VkImageView> swapChainImageViews;
+    VkExtent2D swapChainExtent;
+    unsigned int graphicsQueueFamilyIndex;
+};
+
+class Renderer
+{
+    VkCommandPool commandPool;
+    VkCommandBuffer commandBuffer;
+    std::vector<VkFrameBuffer> framebuffers;
+
+    void createFramebuffers(
+        VkDevice device,
+        VkRenderPass renderPass,
+        std::vector<VkImageView> swapChainImageViews,
+        VkExtent2D swapChainExtent);
+
+    void createCommandPool(
+        VkDevice device,
+        unsigned int queueFamilyIndex);
+        
+    void createCommandBuffer(VkDevice device);
+
+public:
+    Renderer(RendererConfig config);
+
+    ~Renderer() {}
 };
 
 #endif

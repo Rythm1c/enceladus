@@ -86,7 +86,6 @@ cmake --build .
 if [ -f "/c/VulkanSDK/1.4.321.1/Bin/glslc.exe" ]; then
     echo "Compiling shaders..."
     mkdir -p shaders
-    ls ..
     "/c/VulkanSDK/1.4.321.1/Bin/glslc.exe" ../shaders/shader.vert -o shaders/shader.vert.spv
     "/c/VulkanSDK/1.4.321.1/Bin/glslc.exe" ../shaders/shader.frag -o shaders/shader.frag.spv
     echo "Shaders compiled to build/shaders/"
