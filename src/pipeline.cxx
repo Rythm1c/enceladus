@@ -157,6 +157,7 @@ Pipeline::Pipeline(VkDevice device, VkRenderPass renderPass, VkExtent2D swapChai
         throw std::runtime_error("failed to create pipeline layout!");
     }
 
+
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = 2;
@@ -169,7 +170,7 @@ Pipeline::Pipeline(VkDevice device, VkRenderPass renderPass, VkExtent2D swapChai
     pipelineInfo.pDepthStencilState = nullptr; // Optional
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
-    pipelineInfo.layout = pipelineLayout;
+    pipelineInfo.layout = this->layout;
     pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional

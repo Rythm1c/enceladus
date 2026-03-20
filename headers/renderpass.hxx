@@ -5,11 +5,18 @@
 
 struct RenderPass
 {
-    RenderPass() {}
+    RenderPass(VkDevice device, VkFormat swapChainImageFormat);
     ~RenderPass() {};
 
+    inline VkRenderPass getHandle() const { return this->handle; }
+
+    inline void clean(VkDevice device)
+    {
+        vkDestroyRenderPass(device, this->handle, nullptr);
+    }
+
 private:
-    vkRenderPass handle;
+    VkRenderPass handle;
 };
 
 #endif

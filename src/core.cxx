@@ -152,7 +152,9 @@ Core::Core(SDL_Window *window)
       presentQueue(VK_NULL_HANDLE),
       device(VK_NULL_HANDLE),
       surface(VK_NULL_HANDLE),
-      swapchain(VK_NULL_HANDLE)
+      swapchain(VK_NULL_HANDLE),
+      swapChainImageFormat(VK_FORMAT_UNDEFINED),
+      swapChainExtent({0, 0})
 {
     this->initVulkan(window);
 }
@@ -366,6 +368,11 @@ void Core::createSwapchain(SDL_Window *window)
 
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
     VkExtent2D extent = chooseSwapExtent(window, swapChainSupport.capabilities);
+    this->swapChainExtent = extent;
+
+    std::cout << "Selected swapchain format: " << surfaceFormat.format << std::endl;
+    std::cout << "Selected swapchain present mode: " << presentMode << std::endl;
+    std::cout << "Selected swapchain extent: " << extent.width << "x" << extent.height << std::endl;
 
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
 
@@ -450,4 +457,6 @@ void Core::createImageViews()
             throw std::runtime_error("failed to create image views!");
         }
     }
+
+    std::cout << "Image views created successfully" << std::endl;
 }

@@ -17,7 +17,21 @@ class Core
 public:
     Core(SDL_Window *);
     ~Core() {};
-    VkDevice getDevice() const { return device; }
+    inline VkDevice getDevice() const { return device; }
+    inline VkExtent2D getSwapChainExtent() const { return swapChainExtent; }
+    inline VkFormat getSwapChainImageFormat() const { return swapChainImageFormat; }
+
+    inline void clean()
+    {
+        for (size_t i = 0; i < swapChainImageViews.size(); i++)
+        {
+            vkDestroyImageView(device, swapChainImageViews[i], nullptr);
+        }
+        vkDestroySwapchainKHR(device, swapchain, nullptr);
+        vkDestroyDevice(device, nullptr);
+        vkDestroySurfaceKHR(instance, surface, nullptr);
+        vkDestroyInstance(instance, nullptr);
+    }
 
 private:
     VkInstance instance;
@@ -34,6 +48,7 @@ private:
 
     VkSwapchainKHR swapchain;
     VkFormat swapChainImageFormat; // keep format from swapchain creation
+    VkExtent2D swapChainExtent;
 
     std::vector<VkImage> swapChainImages;
     std::vector<VkImageView> swapChainImageViews;

@@ -3,6 +3,8 @@ add_executable(enceladus
     main.cxx
     core.cxx
     pipeline.cxx
+    renderpass.cxx
+    renderer.cxx
 )
 
 # Link libraries

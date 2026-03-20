@@ -2,8 +2,11 @@
 #include <SDL2/SDL_vulkan.h>
 #include <vulkan/vulkan.h>
 #include <iostream>
+#include <memory>
 
 #include "../headers/core.hxx"
+#include "../headers/renderpass.hxx"
+#include "../headers/renderer.hxx"
 #include "../headers/pipeline.hxx"
 
 int main(int argc, char *argv[])
@@ -11,7 +14,6 @@ int main(int argc, char *argv[])
 
     try
     {
-
         // Initialize SDL2
         if (SDL_Init(SDL_INIT_VIDEO) < 0)
         {
@@ -40,8 +42,9 @@ int main(int argc, char *argv[])
 
         std::cout << "Window created: " << window_width << "x" << window_height << std::endl;
 
-        Core core(window);
-        Pipeline pipeline(core.getDevice());
+        std::unique_ptr<Core> core = std::make_unique<Core>(window);
+        std::unique_ptr<RenderPass> renderPass = std::make_unique<RenderPass>(core->getDevice(), core->getSwapChainImageFormat());
+        std::unique_ptr<Pipeline> pipeline = std::make_unique<Pipeline>(core->getDevice(), renderPass->getHandle(), core->getSwapChainExtent());
 
         // Main loop
         bool running = true;
@@ -72,6 +75,9 @@ int main(int argc, char *argv[])
         }
 
         // Cleanup
+        pipeline->clean(core->getDevice());
+        renderPass->clean(core->getDevice());
+        core->clean();
 
         SDL_DestroyWindow(window);
         SDL_Quit();
