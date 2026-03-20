@@ -19,6 +19,10 @@
                 "_UNICODE",
                 "VK_USE_PLATFORM_WIN32_KHR"
             ]
+        },
+        {
+            "name": "Linux",
+            "compilerPath": "/usr/bin/g++"
         }
     ]
 }
