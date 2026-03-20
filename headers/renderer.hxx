@@ -1,7 +1,7 @@
 #ifndef RENDERER_HXX
 #define RENDERER_HXX
 
-#include "vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 #include <vector>
 
 struct RendererConfig
@@ -17,7 +17,7 @@ class Renderer
 {
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
-    std::vector<VkFrameBuffer> framebuffers;
+    std::vector<VkFramebuffer> framebuffers;
 
     void createFramebuffers(
         VkDevice device,

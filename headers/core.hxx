@@ -20,6 +20,9 @@ public:
     inline VkDevice getDevice() const { return device; }
     inline VkExtent2D getSwapChainExtent() const { return swapChainExtent; }
     inline VkFormat getSwapChainImageFormat() const { return swapChainImageFormat; }
+    inline std::vector<VkImageView> getSwapChainImageViews() const { return swapChainImageViews; }
+    inline VkSurfaceKHR getSurface() const { return surface; }
+    inline unsigned int getGraphicsFamilyIndex() const { return graphicsFamilyIndex.value(); }
 
     inline void clean()
     {

@@ -45,6 +45,13 @@ int main(int argc, char *argv[])
         std::unique_ptr<Core> core = std::make_unique<Core>(window);
         std::unique_ptr<RenderPass> renderPass = std::make_unique<RenderPass>(core->getDevice(), core->getSwapChainImageFormat());
         std::unique_ptr<Pipeline> pipeline = std::make_unique<Pipeline>(core->getDevice(), renderPass->getHandle(), core->getSwapChainExtent());
+        RendererConfig rendererConfig{
+            .device = core->getDevice(),
+            .renderPass = renderPass->getHandle(),
+            .swapChainImageViews = core->getSwapChainImageViews(),
+            .swapChainExtent = core->getSwapChainExtent(),
+            .graphicsQueueFamilyIndex = core->getGraphicsFamilyIndex()};
+        std::unique_ptr<Renderer> renderer = std::make_unique<Renderer>(rendererConfig);
 
         // Main loop
         bool running = true;
