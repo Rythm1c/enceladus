@@ -23,6 +23,10 @@ public:
     inline std::vector<VkImageView> getSwapChainImageViews() const { return swapChainImageViews; }
     inline VkSurfaceKHR getSurface() const { return surface; }
     inline unsigned int getGraphicsFamilyIndex() const { return graphicsFamilyIndex.value(); }
+    inline unsigned int getPresentFamilyIndex() const { return presentFamilyIndex.value(); }
+    inline VkSwapchainKHR getSwapChain() const { return swapchain; }
+    inline VkQueue getGraphicsQueue() const { return graphicsQueue; }
+    inline VkQueue getPresentQueue() const { return presentQueue; }
 
     inline void clean()
     {

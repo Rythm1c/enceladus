@@ -166,6 +166,7 @@ void Core::initVulkan(SDL_Window *window)
     this->pickPhysicalDevice();
     this->createLogicalDevice();
     this->createSwapchain(window);
+    this->createImageViews();
 }
 
 void Core::createInstance(SDL_Window *window)
@@ -457,6 +458,6 @@ void Core::createImageViews()
             throw std::runtime_error("failed to create image views!");
         }
     }
-
+    std::cout << "Image views size: " << swapChainImageViews.size() << std::endl;
     std::cout << "Image views created successfully" << std::endl;
 }

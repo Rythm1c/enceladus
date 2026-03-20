@@ -43,15 +43,23 @@ int main(int argc, char *argv[])
         std::cout << "Window created: " << window_width << "x" << window_height << std::endl;
 
         std::unique_ptr<Core> core = std::make_unique<Core>(window);
-        std::unique_ptr<RenderPass> renderPass = std::make_unique<RenderPass>(core->getDevice(), core->getSwapChainImageFormat());
-        std::unique_ptr<Pipeline> pipeline = std::make_unique<Pipeline>(core->getDevice(), renderPass->getHandle(), core->getSwapChainExtent());
+        std::unique_ptr<RenderPass> renderPass = std::make_unique<RenderPass>(
+            core->getDevice(),
+            core->getSwapChainImageFormat());
+
+        std::unique_ptr<Pipeline> pipeline = std::make_unique<Pipeline>(
+            core->getDevice(),
+            renderPass->getHandle(),
+            core->getSwapChainExtent());
+
         RendererConfig rendererConfig{
             .device = core->getDevice(),
             .renderPass = renderPass->getHandle(),
             .swapChainImageViews = core->getSwapChainImageViews(),
             .swapChainExtent = core->getSwapChainExtent(),
             .graphicsQueueFamilyIndex = core->getGraphicsFamilyIndex()};
-        std::unique_ptr<Renderer> renderer = std::make_unique<Renderer>(rendererConfig);
+        std::unique_ptr<Renderer> renderer = std::make_unique<Renderer>(
+            rendererConfig);
 
         // Main loop
         bool running = true;
@@ -76,12 +84,27 @@ int main(int argc, char *argv[])
                 }
             }
 
-            {
-                // TODO: Render Vulkan frame here
+            { // Render a frame
+
+                RenderInfo renderInfo{
+                    .device = core->getDevice(),
+                    .swapchain = core->getSwapChain(),
+                    .swapChainExtent = core->getSwapChainExtent(),
+                    .renderPass = renderPass->getHandle(),
+                    .pipeline = pipeline->getHandle(),
+                    .graphicsQueue = core->getGraphicsQueue(),
+                    .presentQueue = core->getPresentQueue()};
+
+                renderer->beginFrame(renderInfo);
+
+                vkCmdDraw(renderer->getCommandBuffer(), 3, 1, 0, 0);
+                
+                renderer->presentFrame(renderInfo);
             }
         }
 
         // Cleanup
+        renderer->clean(core->getDevice());
         pipeline->clean(core->getDevice());
         renderPass->clean(core->getDevice());
         core->clean();
