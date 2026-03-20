@@ -17,6 +17,7 @@ class Core
 public:
     Core(SDL_Window *);
     ~Core() {};
+    VkDevice getDevice() const { return device; }
 
 private:
     VkInstance instance;

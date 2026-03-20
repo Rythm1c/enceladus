@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "../headers/core.hxx"
+#include "../headers/pipeline.hxx"
 
 int main(int argc, char *argv[])
 {
@@ -40,6 +41,7 @@ int main(int argc, char *argv[])
         std::cout << "Window created: " << window_width << "x" << window_height << std::endl;
 
         Core core(window);
+        Pipeline pipeline(core.getDevice());
 
         // Main loop
         bool running = true;
@@ -52,6 +54,7 @@ int main(int argc, char *argv[])
                 switch (event.type)
                 {
                 case SDL_QUIT:
+                    std::cout << "Quit event received, exiting main loop." << std::endl;
                     running = false;
                     break;
                 case SDL_KEYDOWN:

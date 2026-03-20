@@ -10,7 +10,7 @@ class Pipeline
     VkPipeline handle;
 
 public:
-    Pipeline(VkDevice device);
+    Pipeline(VkDevice device, VkRenderPass renderPass, VkExtent2D swapChainExtent);
     ~Pipeline() {}
 };
 
