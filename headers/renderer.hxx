@@ -4,6 +4,8 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
 struct RendererConfig
 {
     VkDevice device;
@@ -27,12 +29,13 @@ struct RenderInfo
 
 class Renderer
 {
+    uint32_t currentFrame;
     VkCommandPool commandPool;
-    VkCommandBuffer commandBuffer;
+    std::vector<VkCommandBuffer> commandBuffers;
 
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
-    VkFence inFlightFence;
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
+    std::vector<VkFence> inFlightFences;
 
     std::vector<VkFramebuffer> framebuffers;
 
@@ -46,7 +49,7 @@ class Renderer
         VkDevice device,
         unsigned int queueFamilyIndex);
 
-    void createCommandBuffer(VkDevice device);
+    void createCommandBuffers(VkDevice device);
 
     void createSyncObjects(VkDevice device);
 
@@ -56,7 +59,7 @@ public:
     Renderer(RendererConfig config);
 
     ~Renderer() {}
-    inline VkCommandBuffer getCommandBuffer() const { return this->commandBuffer; }
+    inline VkCommandBuffer getCommandBuffer() const { return this->commandBuffers[this->currentFrame]; }
 
     inline void clean(VkDevice device)
     {
@@ -65,9 +68,12 @@ public:
             vkDestroyFramebuffer(device, framebuffer, nullptr);
         }
         vkDestroyCommandPool(device, this->commandPool, nullptr);
-        vkDestroySemaphore(device, this->imageAvailableSemaphore, nullptr);
-        vkDestroySemaphore(device, this->renderFinishedSemaphore, nullptr);
-        vkDestroyFence(device, this->inFlightFence, nullptr);
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        {
+            vkDestroySemaphore(device, this->imageAvailableSemaphores[i], nullptr);
+            vkDestroySemaphore(device, this->renderFinishedSemaphores[i], nullptr);
+            vkDestroyFence(device, this->inFlightFences[i], nullptr);
+        }
     }
 
     void beginFrame(RenderInfo info);

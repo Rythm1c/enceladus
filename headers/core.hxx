@@ -42,6 +42,7 @@ public:
 
 private:
     VkInstance instance;
+    VkDebugUtilsMessengerEXT debugMessenger;
 
     VkPhysicalDevice physicalDevice;
     std::optional<unsigned int> graphicsFamilyIndex;
@@ -61,6 +62,7 @@ private:
     std::vector<VkImageView> swapChainImageViews;
 
     void initVulkan(SDL_Window *);
+    void setupDebugMessenger();
     void createInstance(SDL_Window *);
     void createSurface(SDL_Window *);
     void pickPhysicalDevice();
