@@ -8,6 +8,7 @@
 #include "../headers/renderpass.hxx"
 #include "../headers/renderer.hxx"
 #include "../headers/pipeline.hxx"
+#include "../headers/swapchain.hxx"
 
 int main(int argc, char *argv[])
 {
@@ -42,6 +43,18 @@ int main(int argc, char *argv[])
         std::cout << "Window created: " << window_width << "x" << window_height << std::endl;
 
         std::unique_ptr<Core> core = std::make_unique<Core>(window);
+
+        SwapchainConfig swapchainConfig
+        {
+            .device = core.getDevice(),
+            .window = window,
+            .surface = core.getSurface(),
+            .physicalDevice = core.getPhysicaldevice();
+            .graphicsQueueFamilyIndex = core.getGraphicsFamilyIndex();
+            .presentQueueFamilyIndex = core.getPresentFamilyIndex();
+        };
+        std::unique_ptr<Swapchain> swapchain = std::make_unique<Swapchain>(swapchainConfig);
+
         std::unique_ptr<RenderPass> renderPass = std::make_unique<RenderPass>(
             core->getDevice(),
             core->getSwapChainImageFormat());
@@ -60,8 +73,8 @@ int main(int argc, char *argv[])
         RendererConfig rendererConfig{
             .device = core->getDevice(),
             .renderPass = renderPass->getHandle(),
-            .swapChainImageViews = core->getSwapChainImageViews(),
-            .swapChainExtent = core->getSwapChainExtent(),
+            .swapChainImageViews = swapchain->getImageViews(),
+            .swapChainExtent = swapchain->getExtent(),
             .graphicsQueueFamilyIndex = core->getGraphicsFamilyIndex()};
         std::unique_ptr<Renderer> renderer = std::make_unique<Renderer>(
             rendererConfig);

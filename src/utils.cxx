@@ -243,3 +243,50 @@ void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &create
         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = debugCallback;
 }
+
+std::string getFormatName(VkFormat format)
+{
+    if (format == VK_FORMAT_B8G8R8A8_SRGB)
+    {
+        return "VK_FORMAT_B8G8R8A8_SRGB";
+    }
+    else if (format == VK_FORMAT_R8G8B8A8_SRGB)
+    {
+        return "VK_FORMAT_R8G8B8A8_SRGB";
+    }
+    else if (format == VK_FORMAT_B8G8R8A8_UNORM)
+    {
+        return "VK_FORMAT_B8G8R8A8_UNORM";
+    }
+    else if (format == VK_FORMAT_R8G8B8A8_UNORM)
+    {
+        return "VK_FORMAT_R8G8B8A8_UNORM";
+    }
+    else
+    {
+        return "Unknown format";
+    }
+}
+std::string getPresentModeName(VkPresentModeKHR presentMode)
+{
+    if (presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+    {
+        return "VK_PRESENT_MODE_IMMEDIATE_KHR";
+    }
+    else if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+    {
+        return "VK_PRESENT_MODE_MAILBOX_KHR";
+    }
+    else if (presentMode == VK_PRESENT_MODE_FIFO_KHR)
+    {
+        return "VK_PRESENT_MODE_FIFO_KHR";
+    }
+    else if (presentMode == VK_PRESENT_MODE_FIFO_RELAXED_KHR)
+    {
+        return "VK_PRESENT_MODE_FIFO_RELAXED_KHR";
+    }
+    else
+    {
+        return "Unknown present mode";
+    }
+}

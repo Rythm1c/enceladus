@@ -63,4 +63,7 @@ void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &create
 
 std::vector<char> readFile(const char *filepath);
 
+std::string getFormatName(VkFormat format);
+std::string getPresentModeName(VkPresentModeKHR presentMode);
+
 #endif

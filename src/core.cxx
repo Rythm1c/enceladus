@@ -15,10 +15,8 @@ Core::Core(SDL_Window *window)
       graphicsQueue(VK_NULL_HANDLE),
       presentQueue(VK_NULL_HANDLE),
       device(VK_NULL_HANDLE),
-      surface(VK_NULL_HANDLE),
-      swapchain(VK_NULL_HANDLE),
-      swapChainImageFormat(VK_FORMAT_UNDEFINED),
-      swapChainExtent({0, 0})
+      surface(VK_NULL_HANDLE)
+
 {
     this->initVulkan(window);
 }
@@ -35,11 +33,6 @@ void Core::initVulkan(SDL_Window *window)
 }
 void Core::clean()
 {
-    for (size_t i = 0; i < this->swapChainImageViews.size(); i++)
-    {
-        vkDestroyImageView(this->device, this->swapChainImageViews[i], nullptr);
-    }
-    vkDestroySwapchainKHR(this->device, this->swapchain, nullptr);
     vkDestroyDevice(this->device, nullptr);
     vkDestroySurfaceKHR(this->instance, this->surface, nullptr);
     if (enableValidationLayers)
@@ -215,107 +208,4 @@ void Core::createSurface(SDL_Window *window)
     {
         std::cout << "Vulkan surface created successfully" << std::endl;
     }
-}
-
-void Core::createSwapchain(SDL_Window *window)
-{
-    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(this->physicalDevice, this->surface);
-
-    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-    // remember the final format for later image‑view creation
-    this->swapChainImageFormat = surfaceFormat.format;
-
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-    VkExtent2D extent = chooseSwapExtent(window, swapChainSupport.capabilities);
-    this->swapChainExtent = extent;
-
-    std::cout << "Selected swapchain format: " << surfaceFormat.format << std::endl;
-    std::cout << "Selected swapchain present mode: " << presentMode << std::endl;
-    std::cout << "Selected swapchain extent: " << extent.width << "x" << extent.height << std::endl;
-
-    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-
-    if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
-    {
-        imageCount = swapChainSupport.capabilities.maxImageCount;
-    }
-
-    VkSwapchainCreateInfoKHR createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = surface;
-
-    createInfo.minImageCount = imageCount;
-    createInfo.imageFormat = surfaceFormat.format;
-    createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    createInfo.imageExtent = extent;
-    createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-    uint32_t queueFamilyIndices[] = {this->queueFamilyIndices.graphicsFamily.value(), this->queueFamilyIndices.presentFamily.value()};
-
-    if (this->queueFamilyIndices.graphicsFamily.value() != this->queueFamilyIndices.presentFamily.value())
-    {
-        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        createInfo.queueFamilyIndexCount = 2;
-        createInfo.pQueueFamilyIndices = queueFamilyIndices;
-    }
-    else
-    {
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        createInfo.queueFamilyIndexCount = 0;     // Optional
-        createInfo.pQueueFamilyIndices = nullptr; // Optional
-    }
-
-    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-
-    createInfo.presentMode = presentMode;
-    createInfo.clipped = VK_TRUE;
-
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-    if (vkCreateSwapchainKHR(this->device, &createInfo, nullptr, &this->swapchain) != VK_SUCCESS)
-    {
-        std::runtime_error("Failed to create swapchain");
-    }
-    else
-    {
-        std::cout << "swapchain created successfully" << std::endl;
-    }
-
-    vkGetSwapchainImagesKHR(this->device, this->swapchain, &imageCount, nullptr);
-    this->swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(this->device, this->swapchain, &imageCount, this->swapChainImages.data());
-}
-
-void Core::createImageViews()
-{
-    this->swapChainImageViews.resize(this->swapChainImages.size());
-
-    for (size_t i = 0; i < this->swapChainImages.size(); i++)
-    {
-
-        VkImageViewCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = this->swapChainImages[i];
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.format = this->swapChainImageFormat;
-        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
-        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
-
-        if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create image views!");
-        }
-    }
-    std::cout << "Image views size: " << swapChainImageViews.size() << std::endl;
-    std::cout << "Image views created successfully" << std::endl;
 }

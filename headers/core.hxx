@@ -23,13 +23,10 @@ public:
     void clean();
 
     inline VkDevice getDevice() const { return device; }
-    inline VkExtent2D getSwapChainExtent() const { return swapChainExtent; }
-    inline VkFormat getSwapChainImageFormat() const { return swapChainImageFormat; }
-    inline std::vector<VkImageView> getSwapChainImageViews() const { return swapChainImageViews; }
+    inline VkPhysicalDevice getPhysicaldevice() const { return physicalDevice; }
     inline VkSurfaceKHR getSurface() const { return surface; }
     inline unsigned int getGraphicsFamilyIndex() const { return queueFamilyIndices.graphicsFamily.value(); }
     inline unsigned int getPresentFamilyIndex() const { return queueFamilyIndices.presentFamily.value(); }
-    inline VkSwapchainKHR getSwapChain() const { return swapchain; }
     inline VkQueue getGraphicsQueue() const { return graphicsQueue; }
     inline VkQueue getPresentQueue() const { return presentQueue; }
 
@@ -46,21 +43,13 @@ private:
 
     VkSurfaceKHR surface;
 
-    VkSwapchainKHR swapchain;
-    VkFormat swapChainImageFormat; // keep format from swapchain creation
-    VkExtent2D swapChainExtent;
-
-    std::vector<VkImage> swapChainImages;
-    std::vector<VkImageView> swapChainImageViews;
-
     void initVulkan(SDL_Window *);
     void setupDebugMessenger();
     void createInstance(SDL_Window *);
     void createSurface(SDL_Window *);
     void pickPhysicalDevice();
     void createLogicalDevice();
-    void createSwapchain(SDL_Window *window);
-    void createImageViews();
+    ;
 };
 
 bool checkValidationLayerSupport();
