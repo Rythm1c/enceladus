@@ -6,6 +6,7 @@ add_executable(enceladus
     shader.cxx
     pipeline.cxx
     renderpass.cxx
+    swapchain.cxx
     renderer.cxx
 )
 

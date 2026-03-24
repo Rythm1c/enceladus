@@ -52,6 +52,4 @@ private:
     ;
 };
 
-bool checkValidationLayerSupport();
-
 #endif

@@ -44,25 +44,24 @@ int main(int argc, char *argv[])
 
         std::unique_ptr<Core> core = std::make_unique<Core>(window);
 
-        SwapchainConfig swapchainConfig
-        {
-            .device = core.getDevice(),
+        SwapchainConfig swapchainConfig{
+            .device = core->getDevice(),
             .window = window,
-            .surface = core.getSurface(),
-            .physicalDevice = core.getPhysicaldevice();
-            .graphicsQueueFamilyIndex = core.getGraphicsFamilyIndex();
-            .presentQueueFamilyIndex = core.getPresentFamilyIndex();
+            .surface = core->getSurface(),
+            .physicalDevice = core->getPhysicaldevice(),
+            .graphicsQueueFamilyIndex = core->getGraphicsFamilyIndex(),
+            .presentQueueFamilyIndex = core->getPresentFamilyIndex(),
         };
         std::unique_ptr<Swapchain> swapchain = std::make_unique<Swapchain>(swapchainConfig);
 
         std::unique_ptr<RenderPass> renderPass = std::make_unique<RenderPass>(
             core->getDevice(),
-            core->getSwapChainImageFormat());
+            swapchain->getFormat());
 
         PipelineConfig pipelineConfig{
             .device = core->getDevice(),
             .renderPass = renderPass->getHandle(),
-            .swapChainExtent = core->getSwapChainExtent(),
+            .swapChainExtent = swapchain->getExtent(),
             .vertShader = new Shader(core->getDevice(), "build/shaders/shader.vert.spv"),
             .fragShader = new Shader(core->getDevice(), "build/shaders/shader.frag.spv")};
 
@@ -73,9 +72,10 @@ int main(int argc, char *argv[])
         RendererConfig rendererConfig{
             .device = core->getDevice(),
             .renderPass = renderPass->getHandle(),
-            .swapChainImageViews = swapchain->getImageViews(),
+            .graphicsQueueFamilyIndex = core->getGraphicsFamilyIndex(),
             .swapChainExtent = swapchain->getExtent(),
-            .graphicsQueueFamilyIndex = core->getGraphicsFamilyIndex()};
+            .swapChainImageViews = swapchain->getImageViews()};
+
         std::unique_ptr<Renderer> renderer = std::make_unique<Renderer>(
             rendererConfig);
 
@@ -104,25 +104,35 @@ int main(int argc, char *argv[])
 
             { // Render a frame
 
-                RenderInfo renderInfo{
-                    .device = core->getDevice(),
-                    .swapchain = core->getSwapChain(),
-                    .swapChainExtent = core->getSwapChainExtent(),
-                    .renderPass = renderPass->getHandle(),
-                    .pipeline = pipeline->getHandle(),
-                    .graphicsQueue = core->getGraphicsQueue(),
-                    .presentQueue = core->getPresentQueue()};
-
-                renderer->beginFrame(renderInfo);
-
+                uint32_t frameIndex = renderer->getFrame(
+                    core->getDevice(),
+                    swapchain->getHandle(),
+                    swapchain->getExtent());
+                renderer->beginRecording(
+                    core->getDevice(),
+                    renderPass->getHandle(),
+                    frameIndex,
+                    swapchain->getExtent());
+                renderer->bindPipeline(pipeline->getHandle());
+                // actuall drawing goes here
                 vkCmdDraw(renderer->getCommandBuffer(), 3, 1, 0, 0);
+                // ende command buffer recording and submit
+                renderer->endRecording();
+                renderer->presentFrame(
+                    core->getDevice(),
+                    swapchain->getHandle(),
+                    core->getGraphicsQueue(),
+                    core->getPresentQueue(),
+                    frameIndex);
 
-                renderer->presentFrame(renderInfo);
+                // renderer->presentFrame(renderInfo);
             }
         }
 
         // Cleanup
-        // renderer->clean(core->getDevice());
+        renderer->clean(core->getDevice());
+        swapchain->clean(core->getDevice());
+        renderPass->clean(core->getDevice());
         pipeline->clean(core->getDevice());
         renderPass->clean(core->getDevice());
         core->clean();

@@ -23,7 +23,7 @@ class Swapchain
     std::vector<VkImage> swapChainImages;
     std::vector<VkImageView> swapChainImageViews;
 
-    void createSwapchain(SwapchainConfig config);
+    void createSwapchain(SwapchainConfig &config);
     void createImageViews(VkDevice device);
 
 public:
@@ -32,16 +32,16 @@ public:
           swapChainExtent({0, 0}),
           swapChainImageFormat(VK_FORMAT_UNDEFINED) {}
 
-    Swapchain(SwapchainConfig config);
+    Swapchain(SwapchainConfig &config);
 
     ~Swapchain() {}
 
-    void clean();
+    void clean(VkDevice device);
 
     inline VkSwapchainKHR getHandle() const { return handle; }
-    inline VkFormat getFormat() const { return format; }
+    inline VkFormat getFormat() const { return swapChainImageFormat; }
     inline VkExtent2D getExtent() const { return swapChainExtent; }
     inline std::vector<VkImageView> getImageViews() const { return swapChainImageViews; }
-}
+};
 
 #endif

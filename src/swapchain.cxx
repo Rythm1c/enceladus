@@ -1,25 +1,26 @@
 #include "../headers/swapchain.hxx"
+#include "../headers/utils.hxx"
 
-Swapchain::Swapchain(SwapchainConfig config)
+Swapchain::Swapchain(SwapchainConfig &config)
     : handle(VK_NULL_HANDLE),
       swapChainExtent({0, 0}),
       swapChainImageFormat(VK_FORMAT_UNDEFINED)
 {
-    this->createSwapchain(device, surface, window);
-    this->createImageViews();
+    this->createSwapchain(config);
+    this->createImageViews(config.device);
 }
 
-void Swapchain::clean()
+void Swapchain::clean(VkDevice device)
 {
-    for (auto imageView : swapChainImageViews)
+    for (auto imageView : this->swapChainImageViews)
     {
         vkDestroyImageView(device, imageView, nullptr);
     }
 
-    vkDestroySwapchainKHR(device, swapChain, nullptr);
+    vkDestroySwapchainKHR(device, this->handle, nullptr);
 }
 
-void Swapchain::createSwapchain(SwapchainConfig config)
+void Swapchain::createSwapchain(SwapchainConfig &config)
 {
     SwapChainSupportDetails swapChainSupport = querySwapChainSupport(config.physicalDevice, config.surface);
 
@@ -74,7 +75,7 @@ void Swapchain::createSwapchain(SwapchainConfig config)
 
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    if (vkCreateSwapchainKHR(config.device, &createInfo, nullptr, &this->swapchain) != VK_SUCCESS)
+    if (vkCreateSwapchainKHR(config.device, &createInfo, nullptr, &this->handle) != VK_SUCCESS)
     {
         std::runtime_error("Failed to create swapchain");
     }
@@ -83,9 +84,9 @@ void Swapchain::createSwapchain(SwapchainConfig config)
         std::cout << "swapchain created successfully" << std::endl;
     }
 
-    vkGetSwapchainImagesKHR(config.device, this->swapchain, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(config.device, this->handle, &imageCount, nullptr);
     this->swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(config.device, this->swapchain, &imageCount, this->swapChainImages.data());
+    vkGetSwapchainImagesKHR(config.device, this->handle, &imageCount, this->swapChainImages.data());
     // remember the final format for later image‑view creation
     this->swapChainImageFormat = surfaceFormat.format;
     this->swapChainExtent = extent;

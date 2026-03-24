@@ -12,12 +12,11 @@ struct RendererConfig
     VkDevice device;
     VkRenderPass renderPass;
     unsigned int graphicsQueueFamilyIndex;
-    VkSwapchainKHR swapchain;
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
 };
 
-struct RenderInfo
+/* struct RenderInfo
 {
     VkDevice device;
     uint32_t imageIndex;
@@ -26,7 +25,7 @@ struct RenderInfo
     VkQueue graphicsQueue;
     VkQueue presentQueue;
 };
-
+ */
 class Renderer
 {
     uint32_t currentFrame;
@@ -48,8 +47,6 @@ class Renderer
 
     void createSyncObjects(VkDevice device);
 
-    void recordFrame(RenderInfo &info);
-
 public:
     Renderer(RendererConfig &config);
 
@@ -59,9 +56,14 @@ public:
 
     void clean(VkDevice device);
 
-    void beginFrame(RenderInfo &info);
+    uint32_t getFrame(VkDevice device, VkSwapchainKHR swapchain, VkExtent2D extent);
 
-    void presentFrame(RenderInfo &info);
+    void beginRecording(VkDevice device, VkRenderPass renderpass, uint32_t index, VkExtent2D extent);
+    void endRecording();
+
+    void bindPipeline(VkPipeline pipeline);
+
+    void presentFrame(VkDevice device, VkSwapchainKHR swapchain, VkQueue graphicsQueue, VkQueue presentQueue, uint32_t index);
 };
 
 #endif

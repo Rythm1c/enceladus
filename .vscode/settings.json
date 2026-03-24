@@ -24,5 +24,6 @@
             }
         }
     },
-    "terminal.integrated.defaultProfile.windows": "MSYS2 UCRT64"
+    "terminal.integrated.defaultProfile.windows": "MSYS2 UCRT64",
+    "C_Cpp.default.compilerPath": "/usr/bin/g++"
 }

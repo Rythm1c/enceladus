@@ -23,7 +23,7 @@ void Renderer::clean(VkDevice device)
 
     vkDestroyCommandPool(device, this->commandPool, nullptr);
 
-    for (auto framebuffer : swapChainFramebuffers)
+    for (auto framebuffer : this->framebuffers)
     {
         vkDestroyFramebuffer(device, framebuffer, nullptr);
     }
@@ -119,7 +119,22 @@ void Renderer::createSyncObjects(VkDevice device)
     std::cout << "Synchronization objects created successfully" << std::endl;
 }
 
-void Renderer::recordFrame(RenderInfo &info)
+uint32_t Renderer::getFrame(VkDevice device, VkSwapchainKHR swapchain, VkExtent2D extent)
+{
+    vkWaitForFences(device, 1, &this->inFlightFences[this->currentFrame], VK_TRUE, UINT64_MAX);
+    vkResetFences(device, 1, &this->inFlightFences[this->currentFrame]);
+
+    uint32_t index;
+    vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, this->imageAvailableSemaphores[this->currentFrame], VK_NULL_HANDLE, &index);
+
+    vkResetCommandBuffer(this->commandBuffers[this->currentFrame], 0);
+
+    // this->recordFrame(info);
+
+    return index;
+}
+
+void Renderer::beginRecording(VkDevice device, VkRenderPass renderpass, uint32_t index, VkExtent2D extent)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -133,52 +148,48 @@ void Renderer::recordFrame(RenderInfo &info)
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = info.renderPass;
-    renderPassInfo.framebuffer = this->framebuffers[info.imageIndex];
+    renderPassInfo.renderPass = renderpass;
+    renderPassInfo.framebuffer = this->framebuffers[index];
     renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = this->swapChainExtent;
+    renderPassInfo.renderArea.extent = extent;
     VkClearValue clearColor = {{{0.1f, 0.3f, 0.5f, 1.0f}}};
     renderPassInfo.clearValueCount = 1;
     renderPassInfo.pClearValues = &clearColor;
 
     vkCmdBeginRenderPass(this->commandBuffers[this->currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    vkCmdBindPipeline(this->commandBuffers[this->currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, info.pipeline);
-
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = static_cast<float>(this->swapChainExtent.width);
-    viewport.height = static_cast<float>(this->swapChainExtent.height);
+    viewport.width = static_cast<float>(extent.width);
+    viewport.height = static_cast<float>(extent.height);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(this->commandBuffers[this->currentFrame], 0, 1, &viewport);
 
     VkRect2D scissor{};
     scissor.offset = {0, 0};
-    scissor.extent = this->swapChainExtent;
+    scissor.extent = extent;
     vkCmdSetScissor(this->commandBuffers[this->currentFrame], 0, 1, &scissor);
+
+    //vkCmdBindPipeline(this->commandBuffers[this->currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 }
 
-void Renderer::beginFrame(RenderInfo &info)
+void Renderer::bindPipeline(VkPipeline pipeline)
 {
-    vkWaitForFences(info.device, 1, &this->inFlightFences[this->currentFrame], VK_TRUE, UINT64_MAX);
-    vkResetFences(info.device, 1, &this->inFlightFences[this->currentFrame]);
-
-    vkAcquireNextImageKHR(info.device, this->swapchain, UINT64_MAX, this->imageAvailableSemaphores[this->currentFrame], VK_NULL_HANDLE, &info.imageIndex);
-
-    vkResetCommandBuffer(this->commandBuffers[this->currentFrame], 0);
-
-    this->recordFrame(info);
+    vkCmdBindPipeline(this->commandBuffers[this->currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 }
 
-void Renderer::presentFrame(RenderInfo &info)
+void Renderer::endRecording()
 {
     vkCmdEndRenderPass(this->commandBuffers[this->currentFrame]);
     if (vkEndCommandBuffer(this->commandBuffers[this->currentFrame]) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to end command buffer!");
     }
+}
+
+void Renderer::presentFrame(VkDevice device, VkSwapchainKHR swapchain, VkQueue graphicsQueue, VkQueue presentQueue, uint32_t index)
+{
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -194,7 +205,7 @@ void Renderer::presentFrame(RenderInfo &info)
     VkSemaphore signalSemaphores[] = {this->renderFinishedSemaphores[this->currentFrame]};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
-    if (vkQueueSubmit(info.graphicsQueue, 1, &submitInfo, this->inFlightFences[this->currentFrame]) != VK_SUCCESS)
+    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, this->inFlightFences[this->currentFrame]) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
@@ -204,11 +215,11 @@ void Renderer::presentFrame(RenderInfo &info)
 
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
-    VkSwapchainKHR swapChains[] = {this->swapchain};
+    VkSwapchainKHR swapChains[] = {swapchain};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &info.imageIndex;
+    presentInfo.pImageIndices = &index;
     presentInfo.pResults = nullptr; // Optional
-    vkQueuePresentKHR(info.presentQueue, &presentInfo);
+    vkQueuePresentKHR(presentQueue, &presentInfo);
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }

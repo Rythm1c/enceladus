@@ -28,8 +28,7 @@ void Core::initVulkan(SDL_Window *window)
     this->createSurface(window);
     this->pickPhysicalDevice();
     this->createLogicalDevice();
-    this->createSwapchain(window);
-    this->createImageViews();
+
 }
 void Core::clean()
 {

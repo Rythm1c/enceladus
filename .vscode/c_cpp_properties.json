@@ -3,7 +3,7 @@
     "configurations": [
         {
             "name": "Win32 UCRT64",
-            "compilerPath": "C:/msys64/ucrt64/bin/g++.exe",
+            "compilerPath": "/usr/bin/g++",
             "intelliSenseMode": "windows-gcc-x64",
             "cStandard": "c17",
             "cppStandard": "c++20",
