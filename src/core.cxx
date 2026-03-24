@@ -1,5 +1,4 @@
 #include "../headers/core.hxx"
-#include "../headers/utils.hxx"
 #include <../headers/constants.hxx>
 #include <SDL2/SDL_vulkan.h>
 #include <iostream>
@@ -12,8 +11,7 @@ Core::Core(SDL_Window *window)
     : instance(VK_NULL_HANDLE),
       debugMessenger(VK_NULL_HANDLE),
       physicalDevice(VK_NULL_HANDLE),
-      graphicsFamilyIndex(std::nullopt),
-      presentFamilyIndex(std::nullopt),
+      queueFamilyIndices(QueueFamilyIndices()),
       graphicsQueue(VK_NULL_HANDLE),
       presentQueue(VK_NULL_HANDLE),
       device(VK_NULL_HANDLE),
@@ -63,9 +61,9 @@ void Core::createInstance(SDL_Window *window)
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "Phobos - Vulkan/SDL2";
+    appInfo.pApplicationName = "Enceladus";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "Phobos Engine";
+    appInfo.pEngineName = "Enceladus Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_API_VERSION_1_2;
 
@@ -88,6 +86,22 @@ void Core::createInstance(SDL_Window *window)
     createInfo.pApplicationInfo = &appInfo;
     createInfo.enabledExtensionCount = static_cast<unsigned int>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
+
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+    if (enableValidationLayers)
+    {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+
+        populateDebugMessengerCreateInfo(debugCreateInfo);
+        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debugCreateInfo;
+    }
+    else
+    {
+        createInfo.enabledLayerCount = 0;
+
+        createInfo.pNext = nullptr;
+    }
 
     if (vkCreateInstance(&createInfo, nullptr, &this->instance) != VK_SUCCESS)
     {
@@ -127,69 +141,14 @@ void Core::pickPhysicalDevice()
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(this->instance, &deviceCount, devices.data());
 
-    std::optional<unsigned int> graphicsIndex;
-    std::optional<unsigned int> presentIndex;
-
     for (const auto &device : devices)
     {
-        VkPhysicalDeviceProperties deviceProperties;
-        VkPhysicalDeviceFeatures deviceFeatures;
-        vkGetPhysicalDeviceProperties(device, &deviceProperties);
-        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-        // check queue support for graphics and presentation
-        unsigned int queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
-        int i = 0;
-        for (const auto &queueFamily : queueFamilies)
-        {
-            VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-            if (presentSupport)
-            {
-                presentIndex = i;
-            }
-
-            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-            {
-                graphicsIndex = i;
-                break;
-            }
-            i++;
-        }
-
-        bool extensionsSupported = checkDeviceExtensionSupport(device);
-
-        bool swapChainAdequate = false;
-        if (extensionsSupported)
-        {
-            SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, this->surface);
-            swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
-        }
-
-        if (deviceFeatures.geometryShader &&
-            graphicsIndex.has_value() &&
-            presentIndex.has_value() &&
-            extensionsSupported &&
-            swapChainAdequate)
+        if (isDeviceSuitable(device, this->surface))
         {
             this->physicalDevice = device;
-            this->graphicsFamilyIndex = graphicsIndex;
-            this->presentFamilyIndex = presentIndex;
+            this->queueFamilyIndices = findQueueFamilies(device, this->surface);
             break;
         }
-    }
-
-    if (!graphicsFamilyIndex.has_value())
-    {
-        throw std::runtime_error("failed to find a graphics queue family!");
-    }
-
-    if (!presentFamilyIndex.has_value())
-    {
-        throw std::runtime_error("failed to find a present queue family!");
     }
 
     if (this->physicalDevice == VK_NULL_HANDLE)
@@ -210,8 +169,8 @@ void Core::createLogicalDevice()
     float queuePriority = 1.0f;
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<unsigned int> uniqueQueueFamilies = {
-        this->graphicsFamilyIndex.value(),
-        this->presentFamilyIndex.value()};
+        this->queueFamilyIndices.graphicsFamily.value(),
+        this->queueFamilyIndices.presentFamily.value()};
 
     for (unsigned int queueFamily : uniqueQueueFamilies)
     {
@@ -242,8 +201,8 @@ void Core::createLogicalDevice()
         std::cout << "Logical device created successfully" << std::endl;
     }
 
-    vkGetDeviceQueue(this->device, graphicsFamilyIndex.value(), 0, &this->graphicsQueue);
-    vkGetDeviceQueue(this->device, presentFamilyIndex.value(), 0, &this->presentQueue);
+    vkGetDeviceQueue(this->device, this->queueFamilyIndices.graphicsFamily.value(), 0, &this->graphicsQueue);
+    vkGetDeviceQueue(this->device, this->queueFamilyIndices.presentFamily.value(), 0, &this->presentQueue);
 }
 
 void Core::createSurface(SDL_Window *window)
@@ -292,9 +251,9 @@ void Core::createSwapchain(SDL_Window *window)
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    uint32_t queueFamilyIndices[] = {this->graphicsFamilyIndex.value(), this->presentFamilyIndex.value()};
+    uint32_t queueFamilyIndices[] = {this->queueFamilyIndices.graphicsFamily.value(), this->queueFamilyIndices.presentFamily.value()};
 
-    if (this->graphicsFamilyIndex != this->presentFamilyIndex)
+    if (this->queueFamilyIndices.graphicsFamily.value() != this->queueFamilyIndices.presentFamily.value())
     {
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         createInfo.queueFamilyIndexCount = 2;

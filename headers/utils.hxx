@@ -6,6 +6,7 @@
 #include <set>
 #include <SDL2/SDL.h>
 #include <iostream>
+#include <optional> 
 
 struct SwapChainSupportDetails
 {
@@ -13,6 +14,21 @@ struct SwapChainSupportDetails
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
 };
+
+struct QueueFamilyIndices
+{
+    std::optional<unsigned int> graphicsFamily = std::nullopt;
+    std::optional<unsigned int> presentFamily = std::nullopt;
+
+    bool isComplete()
+    {
+        return graphicsFamily.has_value() && presentFamily.has_value();
+    }
+};
+
+QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
+
+bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
 
