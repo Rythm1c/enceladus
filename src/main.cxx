@@ -11,7 +11,6 @@
 
 int main(int argc, char *argv[])
 {
-
     try
     {
         // Initialize SDL2
@@ -47,10 +46,16 @@ int main(int argc, char *argv[])
             core->getDevice(),
             core->getSwapChainImageFormat());
 
-        std::unique_ptr<Pipeline> pipeline = std::make_unique<Pipeline>(
-            core->getDevice(),
-            renderPass->getHandle(),
-            core->getSwapChainExtent());
+        PipelineConfig pipelineConfig{
+            .device = core->getDevice(),
+            .renderPass = renderPass->getHandle(),
+            .swapChainExtent = core->getSwapChainExtent(),
+            .vertShader = new Shader(core->getDevice(), "build/shaders/shader.vert.spv"),
+            .fragShader = new Shader(core->getDevice(), "build/shaders/shader.frag.spv")};
+
+        std::unique_ptr<Pipeline> pipeline = std::make_unique<Pipeline>(pipelineConfig);
+        pipelineConfig.vertShader->clean(core->getDevice());
+        pipelineConfig.fragShader->clean(core->getDevice());
 
         RendererConfig rendererConfig{
             .device = core->getDevice(),
@@ -98,13 +103,13 @@ int main(int argc, char *argv[])
                 renderer->beginFrame(renderInfo);
 
                 vkCmdDraw(renderer->getCommandBuffer(), 3, 1, 0, 0);
-                
+
                 renderer->presentFrame(renderInfo);
             }
         }
 
         // Cleanup
-        renderer->clean(core->getDevice());
+        // renderer->clean(core->getDevice());
         pipeline->clean(core->getDevice());
         renderPass->clean(core->getDevice());
         core->clean();

@@ -5,59 +5,25 @@
 #include <string>
 #include <iostream>
 
-static std::vector<char> readFile(const std::string &filename)
+Pipeline::Pipeline(PipelineConfig config)
+    : layout(VK_NULL_HANDLE), handle(VK_NULL_HANDLE)
 {
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
-    if (!file.is_open())
+    if (!config.vertShader || !config.fragShader)
     {
-        throw std::runtime_error("failed to open file!");
+        throw std::runtime_error("Vertex and Fragment shaders must be provided!");
     }
-    size_t fileSize = (size_t)file.tellg();
-    std::vector<char> buffer(fileSize);
-
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-
-    file.close();
-
-    return buffer;
-}
-
-VkShaderModule createShaderModule(VkDevice device, const std::vector<char> &code)
-{
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = code.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
-    VkShaderModule shaderModule;
-    if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create shader module!");
-    }
-    return shaderModule;
-}
-
-Pipeline::Pipeline(VkDevice device, VkRenderPass renderPass, VkExtent2D swapChainExtent)
-    : layout(VK_NULL_HANDLE),
-      handle(VK_NULL_HANDLE)
-{
-    auto vertShaderCode = readFile("build/shaders/shader.vert.spv");
-    auto fragShaderCode = readFile("build/shaders/shader.frag.spv");
-
-    VkShaderModule vertShaderModule = createShaderModule(device, vertShaderCode);
-    VkShaderModule fragShaderModule = createShaderModule(device, fragShaderCode);
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.module = config.vertShader->getHandle();
     vertShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.module = config.fragShader->getHandle();
     fragShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
@@ -80,20 +46,20 @@ Pipeline::Pipeline(VkDevice device, VkRenderPass renderPass, VkExtent2D swapChai
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssembly.topology = config.topology;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = (float)swapChainExtent.width;
-    viewport.height = (float)swapChainExtent.height;
+    viewport.width = (float)config.swapChainExtent.width;
+    viewport.height = (float)config.swapChainExtent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor{};
     scissor.offset = {0, 0};
-    scissor.extent = swapChainExtent;
+    scissor.extent = config.swapChainExtent;
 
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -152,11 +118,10 @@ Pipeline::Pipeline(VkDevice device, VkRenderPass renderPass, VkExtent2D swapChai
     pipelineLayoutInfo.pushConstantRangeCount = 0;    // Optional
     pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &this->layout) != VK_SUCCESS)
+    if (vkCreatePipelineLayout(config.device, &pipelineLayoutInfo, nullptr, &this->layout) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create pipeline layout!");
     }
-
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -171,18 +136,15 @@ Pipeline::Pipeline(VkDevice device, VkRenderPass renderPass, VkExtent2D swapChai
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = this->layout;
-    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.renderPass = config.renderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
     pipelineInfo.basePipelineIndex = -1;              // Optional
 
-    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &this->handle) != VK_SUCCESS)
+    if (vkCreateGraphicsPipelines(config.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &this->handle) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
-
-    vkDestroyShaderModule(device, fragShaderModule, nullptr);
-    vkDestroyShaderModule(device, vertShaderModule, nullptr);
 
     std::cout << "Pipeline created successfully" << std::endl;
 }

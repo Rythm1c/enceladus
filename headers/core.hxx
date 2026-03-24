@@ -28,17 +28,7 @@ public:
     inline VkQueue getGraphicsQueue() const { return graphicsQueue; }
     inline VkQueue getPresentQueue() const { return presentQueue; }
 
-    inline void clean()
-    {
-        for (size_t i = 0; i < swapChainImageViews.size(); i++)
-        {
-            vkDestroyImageView(device, swapChainImageViews[i], nullptr);
-        }
-        vkDestroySwapchainKHR(device, swapchain, nullptr);
-        vkDestroyDevice(device, nullptr);
-        vkDestroySurfaceKHR(instance, surface, nullptr);
-        vkDestroyInstance(instance, nullptr);
-    }
+    void clean();
 
 private:
     VkInstance instance;

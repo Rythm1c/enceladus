@@ -61,20 +61,7 @@ public:
     ~Renderer() {}
     inline VkCommandBuffer getCommandBuffer() const { return this->commandBuffers[this->currentFrame]; }
 
-    inline void clean(VkDevice device)
-    {
-        for (auto framebuffer : this->framebuffers)
-        {
-            vkDestroyFramebuffer(device, framebuffer, nullptr);
-        }
-        vkDestroyCommandPool(device, this->commandPool, nullptr);
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-        {
-            vkDestroySemaphore(device, this->imageAvailableSemaphores[i], nullptr);
-            vkDestroySemaphore(device, this->renderFinishedSemaphores[i], nullptr);
-            vkDestroyFence(device, this->inFlightFences[i], nullptr);
-        }
-    }
+    void clean(VkDevice device);
 
     void beginFrame(RenderInfo info);
 

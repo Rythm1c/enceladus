@@ -1,7 +1,9 @@
 # add all source files for the executable
 add_executable(enceladus
     main.cxx
+    utils.cxx
     core.cxx
+    shader.cxx
     pipeline.cxx
     renderpass.cxx
     renderer.cxx
