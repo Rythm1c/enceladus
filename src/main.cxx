@@ -44,8 +44,8 @@ int main(int argc, char *argv[])
         std::cout << "Window created: " << window_width << "x" << window_height << std::endl;
 
         auto core       = std::make_unique<Core>(window);
-        auto swapchain  = std::make_unique<Swapchain>(core, window);
-        auto renderPass = std::make_unique<RenderPass>(core, swapchain->getFormat());
+        auto swapchain  = std::make_unique<Swapchain>(*core, window);
+        auto renderPass = std::make_unique<RenderPass>(*core, swapchain->getFormat());
 
         // ---- Pipeline -------------------------------------------------------
         // Shaders are RAII — destroyed when they go out of scope after pipeline creation.
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
         auto attribDescs = Vertex::getAttributeDescriptions();
 
         PipelineConfig pipelineConfig{
-            .core                  = core,
+            .core                  = *core,
             .renderPass            = renderPass->getHandle(),
             .swapChainExtent       = swapchain->getExtent(),
             .vertShader            = &vertShader,
@@ -71,12 +71,10 @@ int main(int argc, char *argv[])
             .pushConstantRanges    = {pushRange},
         };
         auto pipeline = std::make_unique<Pipeline>(pipelineConfig);
-        pipelineConfig.vertShader->clean(core->getDevice());
-        pipelineConfig.fragShader->clean(core->getDevice());
 
         // ---- Renderer -------------------------------------------------------
         RendererConfig rendererConfig{
-            .core                = core,
+            .core                = *core,
             .renderPass          = renderPass->getHandle(),
             .swapChainExtent     = swapchain->getExtent(),
             .swapChainImageViews = swapchain->getImageViews(),

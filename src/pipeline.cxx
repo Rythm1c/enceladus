@@ -52,7 +52,7 @@ Pipeline::Pipeline(PipelineConfig &config)
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates    = dynamicStates.data();
 
-    VkViewport viewport{};
+    /* VkViewport viewport{};
     viewport.x        = 0.0f;
     viewport.y        = 0.0f;
     viewport.width    = (float)config.swapChainExtent.width;
@@ -62,14 +62,14 @@ Pipeline::Pipeline(PipelineConfig &config)
 
     VkRect2D scissor{};
     scissor.offset = {0, 0};
-    scissor.extent = config.swapChainExtent;
+    scissor.extent = config.swapChainExtent; */
 
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.viewportCount = 1;
-    viewportState.pViewports    = &viewport;
+    //viewportState.pViewports    = &viewport;
     viewportState.scissorCount  = 1;
-    viewportState.pScissors     = &scissor;
+    //viewportState.pScissors     = &scissor;
 
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     rasterizer.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;

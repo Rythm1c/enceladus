@@ -2,6 +2,7 @@
 #include "../headers/core.hxx"
 #include "../headers/pipeline.hxx"
 #include "../headers/utils.hxx"
+#include "../headers/shape.hxx"
 #include <stdexcept>
 #include <iostream>
 
@@ -60,7 +61,7 @@ void Renderer::beginRecording(VkRenderPass renderpass, uint32_t index, VkExtent2
     if (vkBeginCommandBuffer(cmd, &beginInfo) != VK_SUCCESS)
         throw std::runtime_error("Renderer: vkBeginCommandBuffer failed!");
 
-    VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+    VkClearValue clearColor = {{{0.0f, 0.5f, 0.5f, 1.0f}}};
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -72,6 +73,20 @@ void Renderer::beginRecording(VkRenderPass renderpass, uint32_t index, VkExtent2
     renderPassInfo.pClearValues      = &clearColor;
 
     vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    VkViewport viewport{};
+    viewport.x        = 0.0f;
+    viewport.y        = 0.0f;
+    viewport.width    = (float) extent.width;
+    viewport.height   = (float) extent.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = extent;
+    vkCmdSetScissor(cmd, 0, 1, &scissor);
 }
 
 void Renderer::bindPipeline(const Pipeline &pipeline)
@@ -165,7 +180,7 @@ void Renderer::createCommandPool(uint32_t graphicsQueueFamilyIndex)
         std::cout << "Command pool created successfully" << std::endl;
 }
 
-void Renderer::createCommandBuffers(VkDevice device)
+void Renderer::createCommandBuffers()
 {
     m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
@@ -181,7 +196,7 @@ void Renderer::createCommandBuffers(VkDevice device)
         std::cout << "Command buffer allocated successfully" << std::endl;
 }
 
-void Renderer::createSyncObjects(VkDevice device)
+void Renderer::createSyncObjects()
 {
 
     m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);

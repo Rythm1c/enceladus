@@ -1,9 +1,3 @@
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
 #ifndef CORE_HXX
 #define CORE_HXX
 
@@ -17,32 +11,34 @@ const bool enableValidationLayers = true;
 class Core
 {
 public:
+    Core() = default;
     Core(SDL_Window *);
-    ~Core() {};
 
-    void clean();
+    Core(const Core &)            = delete;
+    Core &operator=(const Core &) = delete;
+    Core(Core &&)                 = delete;
+    Core &operator=(Core &&)      = delete;
 
-    inline VkDevice getDevice() const { return device; }
-    inline VkPhysicalDevice getPhysicaldevice() const { return physicalDevice; }
-    inline VkSurfaceKHR getSurface() const { return surface; }
-    inline unsigned int getGraphicsFamilyIndex() const { return queueFamilyIndices.graphicsFamily.value(); }
-    inline unsigned int getPresentFamilyIndex() const { return queueFamilyIndices.presentFamily.value(); }
-    inline VkQueue getGraphicsQueue() const { return graphicsQueue; }
-    inline VkQueue getPresentQueue() const { return presentQueue; }
+    ~Core();
+
+    VkDevice         getDevice()              const { return m_device; }
+    VkPhysicalDevice getPhysicaldevice()      const { return m_physicalDevice; }
+    VkSurfaceKHR     getSurface()             const { return m_surface; }
+    uint32_t         getGraphicsFamilyIndex() const { return m_queueFamilyIndices.graphicsFamily.value(); }
+    uint32_t         getPresentFamilyIndex()  const { return m_queueFamilyIndices.presentFamily.value(); }
+    VkQueue          getGraphicsQueue()       const { return m_graphicsQueue; }
+    VkQueue          getPresentQueue()        const { return m_presentQueue; }
 
 private:
-    VkInstance instance;
-    
-    VkDebugUtilsMessengerEXT debugMessenger;
+    VkInstance m_instance                     = VK_NULL_HANDLE;
+    VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
+    VkPhysicalDevice m_physicalDevice         = VK_NULL_HANDLE;
+    VkQueue m_graphicsQueue                   = VK_NULL_HANDLE;
+    VkQueue m_presentQueue                    = VK_NULL_HANDLE;
+    VkDevice m_device                         = VK_NULL_HANDLE;
+    VkSurfaceKHR m_surface                    = VK_NULL_HANDLE;
 
-    VkPhysicalDevice physicalDevice;
-    QueueFamilyIndices queueFamilyIndices;
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
-
-    VkDevice device;
-
-    VkSurfaceKHR surface;
+    QueueFamilyIndices m_queueFamilyIndices {};
 
     void initVulkan(SDL_Window *);
     void setupDebugMessenger();

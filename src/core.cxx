@@ -1,3 +1,9 @@
+#ifdef NDEBUG
+const bool enableValidationLayers = false;
+#else
+const bool enableValidationLayers = true;
+#endif
+
 #include "../headers/core.hxx"
 #include <../headers/constants.hxx>
 #include <SDL2/SDL_vulkan.h>
@@ -8,15 +14,6 @@
 #include <algorithm> // Necessary for std::clamp
 
 Core::Core(SDL_Window *window)
-    : instance(VK_NULL_HANDLE),
-      debugMessenger(VK_NULL_HANDLE),
-      physicalDevice(VK_NULL_HANDLE),
-      queueFamilyIndices(QueueFamilyIndices()),
-      graphicsQueue(VK_NULL_HANDLE),
-      presentQueue(VK_NULL_HANDLE),
-      device(VK_NULL_HANDLE),
-      surface(VK_NULL_HANDLE)
-
 {
     this->initVulkan(window);
 }
@@ -30,15 +27,15 @@ void Core::initVulkan(SDL_Window *window)
     this->createLogicalDevice();
 
 }
-void Core::clean()
+Core::~Core()
 {
-    vkDestroyDevice(this->device, nullptr);
-    vkDestroySurfaceKHR(this->instance, this->surface, nullptr);
+    vkDestroyDevice(m_device, nullptr);
+    vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
     if (enableValidationLayers)
     {
-        DestroyDebugUtilsMessengerEXT(this->instance, this->debugMessenger, nullptr);
+        DestroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
     }
-    vkDestroyInstance(this->instance, nullptr);
+    vkDestroyInstance(m_instance, nullptr);
 }
 void Core::createInstance(SDL_Window *window)
 {
@@ -95,7 +92,7 @@ void Core::createInstance(SDL_Window *window)
         createInfo.pNext = nullptr;
     }
 
-    if (vkCreateInstance(&createInfo, nullptr, &this->instance) != VK_SUCCESS)
+    if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
     {
         std::cerr << "Failed to create Vulkan instance" << std::endl;
     }
@@ -113,7 +110,7 @@ void Core::setupDebugMessenger()
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(createInfo);
 
-    if (CreateDebugUtilsMessengerEXT(this->instance, &createInfo, nullptr, &this->debugMessenger) != VK_SUCCESS)
+    if (CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to set up debug messenger!");
     }
@@ -123,7 +120,7 @@ void Core::pickPhysicalDevice()
 {
 
     unsigned int deviceCount = 0;
-    vkEnumeratePhysicalDevices(this->instance, &deviceCount, nullptr);
+    vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
 
     if (deviceCount == 0)
     {
@@ -131,26 +128,26 @@ void Core::pickPhysicalDevice()
     }
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
-    vkEnumeratePhysicalDevices(this->instance, &deviceCount, devices.data());
+    vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
 
     for (const auto &device : devices)
     {
-        if (isDeviceSuitable(device, this->surface))
+        if (isDeviceSuitable(device, m_surface))
         {
-            this->physicalDevice = device;
-            this->queueFamilyIndices = findQueueFamilies(device, this->surface);
+            m_physicalDevice = device;
+            m_queueFamilyIndices = findQueueFamilies(device, m_surface);
             break;
         }
     }
 
-    if (this->physicalDevice == VK_NULL_HANDLE)
+    if (m_physicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("failed to find a suitable GPU!");
     }
     else
     {
         VkPhysicalDeviceProperties deviceProperties;
-        vkGetPhysicalDeviceProperties(this->physicalDevice, &deviceProperties);
+        vkGetPhysicalDeviceProperties(m_physicalDevice, &deviceProperties);
         std::cout << "Selected GPU: " << deviceProperties.deviceName << std::endl;
     }
 }
@@ -161,8 +158,8 @@ void Core::createLogicalDevice()
     float queuePriority = 1.0f;
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<unsigned int> uniqueQueueFamilies = {
-        this->queueFamilyIndices.graphicsFamily.value(),
-        this->queueFamilyIndices.presentFamily.value()};
+        m_queueFamilyIndices.graphicsFamily.value(),
+        m_queueFamilyIndices.presentFamily.value()};
 
     for (unsigned int queueFamily : uniqueQueueFamilies)
     {
@@ -184,7 +181,7 @@ void Core::createLogicalDevice()
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
     createInfo.enabledExtensionCount = static_cast<unsigned int>(deviceExtensions.size());
 
-    if (vkCreateDevice(this->physicalDevice, &createInfo, nullptr, &this->device) != VK_SUCCESS)
+    if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create logical device!");
     }
@@ -193,13 +190,13 @@ void Core::createLogicalDevice()
         std::cout << "Logical device created successfully" << std::endl;
     }
 
-    vkGetDeviceQueue(this->device, this->queueFamilyIndices.graphicsFamily.value(), 0, &this->graphicsQueue);
-    vkGetDeviceQueue(this->device, this->queueFamilyIndices.presentFamily.value(), 0, &this->presentQueue);
+    vkGetDeviceQueue(m_device, m_queueFamilyIndices.graphicsFamily.value(), 0, &m_graphicsQueue);
+    vkGetDeviceQueue(m_device, m_queueFamilyIndices.presentFamily.value(), 0, &m_presentQueue);
 }
 
 void Core::createSurface(SDL_Window *window)
 {
-    if (!SDL_Vulkan_CreateSurface(window, this->instance, &this->surface))
+    if (!SDL_Vulkan_CreateSurface(window, m_instance, &m_surface))
     {
         std::cerr << "Failed to create Vulkan surface: " << SDL_GetError() << std::endl;
     }

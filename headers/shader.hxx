@@ -4,22 +4,18 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 
+class Core;
 struct Shader
 {
-    Shader() : handle(VK_NULL_HANDLE) {}
-    Shader(VkDevice device, const char *filepath);
-    ~Shader() {}
+    explicit Shader(Core &core) : m_core(core) {}
+    Shader(Core &core, const char *filepath);
+    ~Shader();
 
-    VkShaderModule getHandle() const { return this->handle; }
-
-    inline void clean(VkDevice device)
-    {
-        vkDestroyShaderModule(device, this->handle, nullptr);
-    }
+    VkShaderModule getHandle() const { return m_handle; }
 
 private:
-    VkShaderModule handle;
-
+    Core &m_core;
+    VkShaderModule m_handle = VK_NULL_HANDLE;
 };
 
 #endif
