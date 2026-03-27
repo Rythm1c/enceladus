@@ -16,16 +16,7 @@ struct RendererConfig
     std::vector<VkImageView> swapChainImageViews;
 };
 
-/* struct RenderInfo
-{
-    VkDevice device;
-    uint32_t imageIndex;
-    VkRenderPass renderPass;
-    VkPipeline pipeline;
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
-};
- */
+
 class Renderer
 {
     uint32_t currentFrame;

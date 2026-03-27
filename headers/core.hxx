@@ -32,6 +32,7 @@ public:
 
 private:
     VkInstance instance;
+    
     VkDebugUtilsMessengerEXT debugMessenger;
 
     VkPhysicalDevice physicalDevice;

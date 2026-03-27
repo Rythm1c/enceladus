@@ -2,6 +2,7 @@
 #define PIPELINE_HXX
 
 #include <vulkan/vulkan.h>
+#include <vector>
 #include "../headers/shader.hxx"
 
 struct PipelineConfig
@@ -12,6 +13,8 @@ struct PipelineConfig
     Shader *vertShader = nullptr;
     Shader *fragShader = nullptr;
     VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    std::vector<VkVertexInputBindingDescription> bindingDescriptions;
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 };
 
 class Pipeline

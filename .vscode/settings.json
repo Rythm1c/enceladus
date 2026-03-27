@@ -6,7 +6,7 @@
     "cmake.preferredGenerators": [
         "Unix Makefiles"
     ],
-    "C_Cpp.intelliSenseEngine": "Tag Parser",
+    //"C_Cpp.intelliSenseEngine": "Tag Parser",
     "files.exclude": {
         "build/**": true
     },
@@ -25,5 +25,5 @@
         }
     },
     "terminal.integrated.defaultProfile.windows": "MSYS2 UCRT64",
-    "C_Cpp.default.compilerPath": "/usr/bin/g++"
+    "C_Cpp.default.compilerPath": "C:/msys64/ucrt64/bin/g++.exe"
 }

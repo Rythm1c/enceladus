@@ -9,6 +9,7 @@
 #include "../headers/renderer.hxx"
 #include "../headers/pipeline.hxx"
 #include "../headers/swapchain.hxx"
+#include "../headers/vertex.hxx"
 
 int main(int argc, char *argv[])
 {
@@ -63,7 +64,11 @@ int main(int argc, char *argv[])
             .renderPass = renderPass->getHandle(),
             .swapChainExtent = swapchain->getExtent(),
             .vertShader = new Shader(core->getDevice(), "build/shaders/shader.vert.spv"),
-            .fragShader = new Shader(core->getDevice(), "build/shaders/shader.frag.spv")};
+            .fragShader = new Shader(core->getDevice(), "build/shaders/shader.frag.spv"),
+            .bindingDescriptions = {Vertex::getBindingDescription()},
+            .attributeDescriptions = Vertex::getAttributeDescriptions(),
+
+        };
 
         std::unique_ptr<Pipeline> pipeline = std::make_unique<Pipeline>(pipelineConfig);
         pipelineConfig.vertShader->clean(core->getDevice());

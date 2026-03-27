@@ -6,7 +6,7 @@
 struct RenderPass
 {
     RenderPass(VkDevice device, VkFormat swapChainImageFormat);
-    ~RenderPass() {};
+    ~RenderPass() {}
 
     inline VkRenderPass getHandle() const { return this->handle; }
 
