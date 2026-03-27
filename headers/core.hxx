@@ -29,6 +29,9 @@ public:
     VkQueue          getGraphicsQueue()       const { return m_graphicsQueue; }
     VkQueue          getPresentQueue()        const { return m_presentQueue; }
 
+    VkCommandBuffer beginSigleTimeCommands();
+    void            endSingleTimeCommands(VkCommandBuffer cmd);
+
 private:
     VkInstance m_instance                     = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
@@ -37,6 +40,7 @@ private:
     VkQueue m_presentQueue                    = VK_NULL_HANDLE;
     VkDevice m_device                         = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface                    = VK_NULL_HANDLE;
+    VkCommandPool m_commandPool               = VK_NULL_HANDLE;
 
     QueueFamilyIndices m_queueFamilyIndices {};
 
@@ -46,6 +50,7 @@ private:
     void createSurface(SDL_Window *);
     void pickPhysicalDevice();
     void createLogicalDevice();
+    void createCommandPool();
     ;
 };
 

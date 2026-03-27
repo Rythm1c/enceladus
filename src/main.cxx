@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
         };
         auto renderer = std::make_unique<Renderer>(rendererConfig);
 
-        Triangle triangle(*core, {0.0f, 0.0f}, 0.5f);
+        Triangle triangle(*core, {0.0f, 0.0f}, 0.5f, {1.0f, 1.0f , 1.0f});
         triangle.upload();
 
         // Main loop

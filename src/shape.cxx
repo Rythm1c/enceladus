@@ -22,12 +22,17 @@ void Shape::upload()
 
     assert(!m_vertices.empty() && "Shape::upload — buildGeometry() left m_vertices empty!");
 
-    m_vertexBuffer.create(
-        sizeof(Vertex) * m_vertices.size(),
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    m_vertexBuffer = createDeviceLocalBuffer(
+        m_core,
+        m_vertices,
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
-    m_vertexBuffer.uploadData(m_vertices);
+    /*    m_vertexBuffer.create(
+           sizeof(Vertex) * m_vertices.size(),
+           VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    */
+    // m_vertexBuffer.uploadData(m_vertices);
 }
 
 void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
@@ -45,7 +50,7 @@ void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
         &m_pushConstants);
 
     // Bind the vertex buffer
-    VkBuffer     buffers[] = {m_vertexBuffer.get()};
+    VkBuffer buffers[] = {m_vertexBuffer.get()};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(cmd, 0, 1, buffers, offsets);
 
@@ -58,12 +63,12 @@ void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
 // =============================================================================
 
 Triangle::Triangle(
-    Core     &core,
-    Vector2f  position,
-    float     size,
-    Vector3f  colorA,
-    Vector3f  colorB,
-    Vector3f  colorC)
+    Core &core,
+    Vector2f position,
+    float size,
+    Vector3f colorA,
+    Vector3f colorB,
+    Vector3f colorC)
     : Shape(core, position),
       m_size(size),
       m_colorA(colorA),
@@ -82,8 +87,8 @@ void Triangle::buildGeometry()
     //  botL -----  botR
     //
     m_vertices = {
-        Vertex{{ 0.0f,       -m_size}, m_colorA},   // top centre
-        Vertex{{ m_size,      m_size}, m_colorC},   // bottom right
-        Vertex{{-m_size,      m_size}, m_colorB},   // bottom left
+        Vertex{{0.0f, -m_size}, m_colorA},   // top centre
+        Vertex{{m_size, m_size}, m_colorC},  // bottom right
+        Vertex{{-m_size, m_size}, m_colorB}, // bottom left
     };
 }

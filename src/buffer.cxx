@@ -64,6 +64,27 @@ void Buffer::create(
     vkBindBufferMemory(ref_core.getDevice(), this->m_handle, this->m_bufferMemory, 0);
 }
 
+void copyBuffer(
+    Core         &core,
+    VkBuffer     src,
+    VkBuffer     dst,
+    VkDeviceSize size
+){
+    VkCommandBuffer cmd = core.beginSigleTimeCommands();
+
+    VkBufferCopy region{};
+    region.size = size;
+
+    vkCmdCopyBuffer(
+        cmd,
+        src,
+        dst,
+        1,
+        &region);
+    
+    core.endSingleTimeCommands(cmd);
+}
+
 uint32_t findMemoryType(uint32_t typeFilter, VkPhysicalDevice physicalDevice, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties memProperties;

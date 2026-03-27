@@ -25,10 +25,11 @@ void Core::initVulkan(SDL_Window *window)
     this->createSurface(window);
     this->pickPhysicalDevice();
     this->createLogicalDevice();
-
+    this->createCommandPool();
 }
 Core::~Core()
 {
+    vkDestroyCommandPool(m_device, m_commandPool, nullptr);
     vkDestroyDevice(m_device, nullptr);
     vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
     if (enableValidationLayers)
@@ -49,12 +50,12 @@ void Core::createInstance(SDL_Window *window)
     }
 
     VkApplicationInfo appInfo{};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "Enceladus";
+    appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName   = "Enceladus";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "Enceladus Engine";
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_2;
+    appInfo.pEngineName        = "Enceladus Engine";
+    appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion         = VK_API_VERSION_1_2;
 
     unsigned int extensionCount = 0;
     SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, nullptr);
@@ -71,15 +72,15 @@ void Core::createInstance(SDL_Window *window)
     }
 
     VkInstanceCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    createInfo.pApplicationInfo = &appInfo;
-    createInfo.enabledExtensionCount = static_cast<unsigned int>(extensions.size());
+    createInfo.sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    createInfo.pApplicationInfo        = &appInfo;
+    createInfo.enabledExtensionCount   = static_cast<unsigned int>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     if (enableValidationLayers)
     {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.enabledLayerCount   = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
 
         populateDebugMessengerCreateInfo(debugCreateInfo);
@@ -164,9 +165,9 @@ void Core::createLogicalDevice()
     for (unsigned int queueFamily : uniqueQueueFamilies)
     {
         VkDeviceQueueCreateInfo queueCreateInfo{};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo.queueFamilyIndex = queueFamily;
-        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.queueCount       = 1;
         queueCreateInfo.pQueuePriorities = &queuePriority;
         queueCreateInfos.push_back(queueCreateInfo);
     }
@@ -174,12 +175,12 @@ void Core::createLogicalDevice()
     VkPhysicalDeviceFeatures deviceFeatures{};
 
     VkDeviceCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.pQueueCreateInfos = queueCreateInfos.data();
-    createInfo.queueCreateInfoCount = static_cast<unsigned int>(queueCreateInfos.size());
-    createInfo.pEnabledFeatures = &deviceFeatures;
+    createInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pQueueCreateInfos       = queueCreateInfos.data();
+    createInfo.queueCreateInfoCount    = static_cast<unsigned int>(queueCreateInfos.size());
+    createInfo.pEnabledFeatures        = &deviceFeatures;
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-    createInfo.enabledExtensionCount = static_cast<unsigned int>(deviceExtensions.size());
+    createInfo.enabledExtensionCount   = static_cast<unsigned int>(deviceExtensions.size());
 
     if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS)
     {
@@ -204,4 +205,72 @@ void Core::createSurface(SDL_Window *window)
     {
         std::cout << "Vulkan surface created successfully" << std::endl;
     }
+}
+
+void Core::createCommandPool(){
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    poolInfo.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily.value();
+
+    if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Core: vkCreateCommandPool failed");
+    }
+}
+
+VkCommandBuffer Core::beginSigleTimeCommands(){
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool        = m_commandPool;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer;
+
+    VkResult result = vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer);
+
+    if (result != VK_SUCCESS)
+    {
+        throw std::runtime_error("Core: Failed to allocate command buffer");
+    }
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+    if (result != VK_SUCCESS)
+    {
+        throw std::runtime_error("Core: Failed to begin command buffer");
+    }
+
+    return commandBuffer;
+}
+void Core::endSingleTimeCommands(VkCommandBuffer cmd){
+    VkResult result = vkEndCommandBuffer(cmd);
+
+    if (result != VK_SUCCESS)
+    {
+        throw std::runtime_error("Core: Failed to end command buffer");
+    }
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers    = &cmd;
+
+    result = vkQueueSubmit(m_graphicsQueue, 1,&submitInfo, VK_NULL_HANDLE);
+
+    if (result != VK_SUCCESS)
+    {
+        throw std::runtime_error(
+            "Core: Failed to submit command buffer");
+    }
+
+    // Required for staging safety
+    vkQueueWaitIdle(m_graphicsQueue);
+
+    vkFreeCommandBuffers(m_device, m_commandPool, 1, &cmd);
 }

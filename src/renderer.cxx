@@ -61,7 +61,7 @@ void Renderer::beginRecording(VkRenderPass renderpass, uint32_t index, VkExtent2
     if (vkBeginCommandBuffer(cmd, &beginInfo) != VK_SUCCESS)
         throw std::runtime_error("Renderer: vkBeginCommandBuffer failed!");
 
-    VkClearValue clearColor = {{{0.0f, 0.5f, 0.5f, 1.0f}}};
+    VkClearValue clearColor = {{{m_clearColor[0], m_clearColor[1], m_clearColor[2], 1.0f}}};
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;

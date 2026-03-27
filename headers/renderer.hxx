@@ -23,10 +23,11 @@ struct RendererConfig
 class Renderer
 {
 private:
-    Core                        &m_core;
-    VkRenderPass                 m_renderPass = VK_NULL_HANDLE;
-    uint32_t                     m_currentFrame = 0;
-    VkCommandPool                m_commandPool  = VK_NULL_HANDLE;
+    Core                         &m_core;
+    VkRenderPass                 m_renderPass    = VK_NULL_HANDLE;
+    uint32_t                     m_currentFrame  = 0;
+    VkCommandPool                m_commandPool   = VK_NULL_HANDLE;
+    float                        m_clearColor[3] = {0.1f, 0.1f, 0.1f};
     std::vector<VkCommandBuffer> m_commandBuffers;
     std::vector<VkSemaphore>     m_imageAvailableSemaphores;
     std::vector<VkSemaphore>     m_renderFinishedSemaphores;
@@ -50,6 +51,8 @@ public:
     ~Renderer();
 
     VkCommandBuffer getCommandBuffer() const { return m_commandBuffers[m_currentFrame]; }
+
+    void clearColor(float r, float g, float b) { m_clearColor[0] = r; m_clearColor[1] = g; m_clearColor[2] = b; };
 
     // ----- Frame lifecycle ---------------------------------------------------
     // Returns the swapchain image index to use for this frame.
