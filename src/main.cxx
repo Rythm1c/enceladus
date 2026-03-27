@@ -10,6 +10,7 @@
 #include "../headers/pipeline.hxx"
 #include "../headers/swapchain.hxx"
 #include "../headers/vertex.hxx"
+#include "../headers/shape.hxx"
 
 int main(int argc, char *argv[])
 {
@@ -22,14 +23,13 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-        int window_width = 800;
-        int window_height = 600;
+        const int window_width  = 800;
+        const int window_height = 600;
 
         // Create SDL2 window
         SDL_Window *window = SDL_CreateWindow(
-            "Enceladus-Vulkan||SDL2",
-            100,
-            100,
+            "Enceladus - Vulkan | SDL2",
+            100, 100,
             window_width,
             window_height,
             SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
@@ -43,46 +43,48 @@ int main(int argc, char *argv[])
 
         std::cout << "Window created: " << window_width << "x" << window_height << std::endl;
 
-        std::unique_ptr<Core> core = std::make_unique<Core>(window);
+        auto core       = std::make_unique<Core>(window);
+        auto swapchain  = std::make_unique<Swapchain>(core, window);
+        auto renderPass = std::make_unique<RenderPass>(core, swapchain->getFormat());
 
-        SwapchainConfig swapchainConfig{
-            .device = core->getDevice(),
-            .window = window,
-            .surface = core->getSurface(),
-            .physicalDevice = core->getPhysicaldevice(),
-            .graphicsQueueFamilyIndex = core->getGraphicsFamilyIndex(),
-            .presentQueueFamilyIndex = core->getPresentFamilyIndex(),
-        };
-        std::unique_ptr<Swapchain> swapchain = std::make_unique<Swapchain>(swapchainConfig);
+        // ---- Pipeline -------------------------------------------------------
+        // Shaders are RAII — destroyed when they go out of scope after pipeline creation.
+        Shader vertShader(*core, "build/shaders/shader.vert.spv");
+        Shader fragShader(*core, "build/shaders/shader.frag.spv");
 
-        std::unique_ptr<RenderPass> renderPass = std::make_unique<RenderPass>(
-            core->getDevice(),
-            swapchain->getFormat());
+        // Push constants: a single vec2 offset pushed in the vertex stage.
+        VkPushConstantRange pushRange{};
+        pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        pushRange.offset     = 0;
+        pushRange.size       = sizeof(PushConstants2D);
+
+        auto attribDescs = Vertex::getAttributeDescriptions();
 
         PipelineConfig pipelineConfig{
-            .device = core->getDevice(),
-            .renderPass = renderPass->getHandle(),
-            .swapChainExtent = swapchain->getExtent(),
-            .vertShader = new Shader(core->getDevice(), "build/shaders/shader.vert.spv"),
-            .fragShader = new Shader(core->getDevice(), "build/shaders/shader.frag.spv"),
-            .bindingDescriptions = {Vertex::getBindingDescription()},
-            .attributeDescriptions = Vertex::getAttributeDescriptions(),
-
+            .core                  = core,
+            .renderPass            = renderPass->getHandle(),
+            .swapChainExtent       = swapchain->getExtent(),
+            .vertShader            = &vertShader,
+            .fragShader            = &fragShader,
+            .bindingDescriptions   = {Vertex::getBindingDescription()},
+            .attributeDescriptions = {attribDescs.begin(), attribDescs.end()},
+            .pushConstantRanges    = {pushRange},
         };
-
-        std::unique_ptr<Pipeline> pipeline = std::make_unique<Pipeline>(pipelineConfig);
+        auto pipeline = std::make_unique<Pipeline>(pipelineConfig);
         pipelineConfig.vertShader->clean(core->getDevice());
         pipelineConfig.fragShader->clean(core->getDevice());
 
+        // ---- Renderer -------------------------------------------------------
         RendererConfig rendererConfig{
-            .device = core->getDevice(),
-            .renderPass = renderPass->getHandle(),
-            .graphicsQueueFamilyIndex = core->getGraphicsFamilyIndex(),
-            .swapChainExtent = swapchain->getExtent(),
-            .swapChainImageViews = swapchain->getImageViews()};
+            .core                = core,
+            .renderPass          = renderPass->getHandle(),
+            .swapChainExtent     = swapchain->getExtent(),
+            .swapChainImageViews = swapchain->getImageViews(),
+        };
+        auto renderer = std::make_unique<Renderer>(rendererConfig);
 
-        std::unique_ptr<Renderer> renderer = std::make_unique<Renderer>(
-            rendererConfig);
+        Triangle triangle(*core, {0.0f, 0.0f}, 0.5f);
+        triangle.upload();
 
         // Main loop
         bool running = true;
@@ -110,37 +112,26 @@ int main(int argc, char *argv[])
             { // Render a frame
 
                 uint32_t frameIndex = renderer->getFrame(
-                    core->getDevice(),
                     swapchain->getHandle(),
                     swapchain->getExtent());
+
                 renderer->beginRecording(
-                    core->getDevice(),
                     renderPass->getHandle(),
                     frameIndex,
                     swapchain->getExtent());
-                renderer->bindPipeline(pipeline->getHandle());
-                // actuall drawing goes here
-                vkCmdDraw(renderer->getCommandBuffer(), 3, 1, 0, 0);
-                // ende command buffer recording and submit
+
+                renderer->bindPipeline(*pipeline);
+                renderer->drawShape(triangle, *pipeline);
+
                 renderer->endRecording();
-                renderer->presentFrame(
-                    core->getDevice(),
-                    swapchain->getHandle(),
-                    core->getGraphicsQueue(),
-                    core->getPresentQueue(),
-                    frameIndex);
+                renderer->presentFrame(swapchain->getHandle(), frameIndex);
 
                 // renderer->presentFrame(renderInfo);
             }
         }
 
-        // Cleanup
-        renderer->clean(core->getDevice());
-        swapchain->clean(core->getDevice());
-        renderPass->clean(core->getDevice());
-        pipeline->clean(core->getDevice());
-        renderPass->clean(core->getDevice());
-        core->clean();
+        vkDeviceWaitIdle(core->getDevice());
+
 
         SDL_DestroyWindow(window);
         SDL_Quit();

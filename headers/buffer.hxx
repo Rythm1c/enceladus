@@ -23,14 +23,14 @@ public:
             destroy();
 
             // Move ownership
-            handle = other.handle;
-            bufferMemory = other.bufferMemory;
-            size = other.size;
+            m_handle = other.m_handle;
+            m_bufferMemory = other.m_bufferMemory;
+            m_size = other.m_size;
 
             // Reset source
-            other.handle = VK_NULL_HANDLE;
-            other.bufferMemory = VK_NULL_HANDLE;
-            other.size = 0;
+            other.m_handle = VK_NULL_HANDLE;
+            other.m_bufferMemory = VK_NULL_HANDLE;
+            other.m_size = 0;
         }
 
         return *this;
@@ -46,16 +46,17 @@ public:
     template <typename T>
     void uploadData(const std::vector<T> &data);
 
-    VkBuffer get() const { return handle; }
-
-    void destroy();
+    VkBuffer get()       const { return m_handle; }
+    bool     isCreated() const { return  m_handle != VK_NULL_HANDLE; }
 
 private:
-    Core &ref_core;
-    VkBuffer handle = VK_NULL_HANDLE;
-    VkDeviceMemory bufferMemory = VK_NULL_HANDLE;
-    VkMemoryRequirements memRequirements{};
-    VkDeviceSize size = 0;
+    Core                &ref_core;
+    VkBuffer             m_handle = VK_NULL_HANDLE;
+    VkDeviceMemory       m_bufferMemory = VK_NULL_HANDLE;
+    VkMemoryRequirements m_memRequirements{};
+    VkDeviceSize         m_size = 0;
+
+    void destroy();
 };
 
 uint32_t findMemoryType(uint32_t typeFilter, VkPhysicalDevice physicalDevice, VkMemoryPropertyFlags properties);

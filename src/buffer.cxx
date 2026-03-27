@@ -4,30 +4,30 @@
 
 Buffer::Buffer(Buffer &&other) noexcept
     : ref_core(other.ref_core),
-      handle(other.handle),
-      bufferMemory(other.bufferMemory),
-      size(other.size)
+      m_handle(other.m_handle),
+      m_bufferMemory(other.m_bufferMemory),
+      m_size(other.m_size)
 {
-    other.handle = VK_NULL_HANDLE;
-    other.bufferMemory = VK_NULL_HANDLE;
-    other.size = 0;
+    other.m_handle = VK_NULL_HANDLE;
+    other.m_bufferMemory = VK_NULL_HANDLE;
+    other.m_size = 0;
 }
 
 void Buffer::destroy()
 {
-    if (handle != VK_NULL_HANDLE)
+    if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyBuffer(ref_core.getDevice(), handle, nullptr);
-        handle = VK_NULL_HANDLE;
+        vkDestroyBuffer(ref_core.getDevice(), m_handle, nullptr);
+        m_handle = VK_NULL_HANDLE;
     }
 
-    if (bufferMemory != VK_NULL_HANDLE)
+    if (m_bufferMemory != VK_NULL_HANDLE)
     {
-        vkFreeMemory(ref_core.getDevice(), bufferMemory, nullptr);
-        bufferMemory = VK_NULL_HANDLE;
+        vkFreeMemory(ref_core.getDevice(), m_bufferMemory, nullptr);
+        m_bufferMemory = VK_NULL_HANDLE;
     }
 
-    size = 0;
+    m_size = 0;
 }
 
 void Buffer::create(
@@ -35,33 +35,33 @@ void Buffer::create(
     VkBufferUsageFlags usage,
     VkMemoryPropertyFlags properties)
 {
-    assert(this->handle == VK_NULL_HANDLE);
+    assert(this->m_handle == VK_NULL_HANDLE);
 
     VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
+    bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size        = size;
+    bufferInfo.usage       = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateBuffer(this->ref_core.getDevice(), &bufferInfo, nullptr, &this->handle) != VK_SUCCESS)
+    if (vkCreateBuffer(this->ref_core.getDevice(), &bufferInfo, nullptr, &this->m_handle) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create buffer!");
     }
 
-    vkGetBufferMemoryRequirements(this->ref_core.getDevice(), this->handle, &this->memRequirements);
-    this->size = this->memRequirements.size;
+    vkGetBufferMemoryRequirements(this->ref_core.getDevice(), this->m_handle, &this->m_memRequirements);
+    this->m_size = this->m_memRequirements.size;
 
     VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(this->memRequirements.memoryTypeBits, ref_core.getPhysicaldevice(), properties);
+    allocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize  = m_memRequirements.size;
+    allocInfo.memoryTypeIndex = findMemoryType(this->m_memRequirements.memoryTypeBits, ref_core.getPhysicaldevice(), properties);
 
-    if (vkAllocateMemory(ref_core.getDevice(), &allocInfo, nullptr, &this->bufferMemory) != VK_SUCCESS)
+    if (vkAllocateMemory(ref_core.getDevice(), &allocInfo, nullptr, &this->m_bufferMemory) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to allocate vertex buffer memory!");
     }
 
-    vkBindBufferMemory(ref_core.getDevice(), this->handle, this->bufferMemory, 0);
+    vkBindBufferMemory(ref_core.getDevice(), this->m_handle, this->m_bufferMemory, 0);
 }
 
 uint32_t findMemoryType(uint32_t typeFilter, VkPhysicalDevice physicalDevice, VkMemoryPropertyFlags properties)

@@ -1,22 +1,26 @@
 #ifndef RENDER_PASS_HXX
 #define RENDER_PASS_HXX
 
-#include "vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 
-struct RenderPass
+class Core;
+
+class RenderPass
 {
-    RenderPass(VkDevice device, VkFormat swapChainImageFormat);
-    ~RenderPass() {}
+    public:
+    RenderPass(Core &core, VkFormat swapChainImageFormat);
+    ~RenderPass();
 
-    inline VkRenderPass getHandle() const { return this->handle; }
+    RenderPass(const RenderPass &)            = delete;
+    RenderPass &operator=(const RenderPass &) = delete;
+    RenderPass(RenderPass &&)                 = delete;
+    RenderPass &operator=(RenderPass &&)      = delete;
 
-    inline void clean(VkDevice device)
-    {
-        vkDestroyRenderPass(device, this->handle, nullptr);
-    }
+    inline VkRenderPass getHandle() const { return m_handle; }
 
 private:
-    VkRenderPass handle;
+    Core &m_core;
+    VkRenderPass m_handle;
 };
 
 #endif

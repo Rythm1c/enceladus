@@ -5,43 +5,35 @@
 #include <vector>
 #include <SDL2/SDL.h>
 
-struct SwapchainConfig
-{
-    VkDevice device;
-    SDL_Window *window;
-    VkSurfaceKHR surface;
-    VkPhysicalDevice physicalDevice;
-    unsigned int graphicsQueueFamilyIndex;
-    unsigned int presentQueueFamilyIndex;
-};
+class Core;
 
 class Swapchain
 {
-    VkSwapchainKHR handle;
-    VkExtent2D swapChainExtent;
-    VkFormat swapChainImageFormat;
-    std::vector<VkImage> swapChainImages;
-    std::vector<VkImageView> swapChainImageViews;
+private:
+    Core                        &m_core;
+    VkSwapchainKHR               m_handle      = VK_NULL_HANDLE;
+    VkExtent2D                   m_extent      = {0, 0};
+    VkFormat                     m_imageFormat = VK_FORMAT_UNDEFINED;
+    std::vector<VkImage>         m_images;
+    std::vector<VkImageView>     m_imageViews;
 
-    void createSwapchain(SwapchainConfig &config);
-    void createImageViews(VkDevice device);
+    void createSwapchain(SDL_Window *window);
+    void createImageViews();
 
 public:
-    Swapchain()
-        : handle(VK_NULL_HANDLE),
-          swapChainExtent({0, 0}),
-          swapChainImageFormat(VK_FORMAT_UNDEFINED) {}
+    explicit Swapchain(Core &core, SDL_Window* window);
 
-    Swapchain(SwapchainConfig &config);
+    Swapchain(const Swapchain &)            = delete;
+    Swapchain &operator=(const Swapchain &) = delete;
+    Swapchain(Swapchain &&)                 = delete;
+    Swapchain &operator=(Swapchain &&)      = delete;
 
-    ~Swapchain() {}
+    ~Swapchain();
 
-    void clean(VkDevice device);
-
-    inline VkSwapchainKHR getHandle() const { return handle; }
-    inline VkFormat getFormat() const { return swapChainImageFormat; }
-    inline VkExtent2D getExtent() const { return swapChainExtent; }
-    inline std::vector<VkImageView> getImageViews() const { return swapChainImageViews; }
+    VkSwapchainKHR                  getHandle()     const { return m_handle; }
+    VkFormat                        getFormat()     const { return m_imageFormat; }
+    VkExtent2D                      getExtent()     const { return m_extent; }
+    const std::vector<VkImageView> &getImageViews() const { return m_imageViews; }
 };
 
 #endif

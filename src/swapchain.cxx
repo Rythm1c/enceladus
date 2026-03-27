@@ -1,32 +1,37 @@
 #include "../headers/swapchain.hxx"
 #include "../headers/utils.hxx"
+#include "../headers/core.hxx"
 
-Swapchain::Swapchain(SwapchainConfig &config)
-    : handle(VK_NULL_HANDLE),
-      swapChainExtent({0, 0}),
-      swapChainImageFormat(VK_FORMAT_UNDEFINED)
+Swapchain::Swapchain(Core &core, SDL_Window *window)
+    : m_core(core)
 {
-    this->createSwapchain(config);
-    this->createImageViews(config.device);
+    this->createSwapchain(window);
+    this->createImageViews();
 }
 
-void Swapchain::clean(VkDevice device)
+Swapchain::~Swapchain()
 {
-    for (auto imageView : this->swapChainImageViews)
+    VkDevice device = m_core.getDevice();
+
+    for (auto imageView : m_imageViews)
     {
         vkDestroyImageView(device, imageView, nullptr);
     }
 
-    vkDestroySwapchainKHR(device, this->handle, nullptr);
+    vkDestroySwapchainKHR(device, m_handle, nullptr);
 }
 
-void Swapchain::createSwapchain(SwapchainConfig &config)
+void Swapchain::createSwapchain(SDL_Window *window)
 {
-    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(config.physicalDevice, config.surface);
+    VkDevice device                 = m_core.getDevice();
+    VkPhysicalDevice physicalDevice = m_core.getPhysicaldevice();
+    VkSurfaceKHR surface            = m_core.getSurface();
+
+    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice, surface);
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-    VkExtent2D extent = chooseSwapExtent(config.window, swapChainSupport.capabilities);
+    VkPresentModeKHR presentMode     = chooseSwapPresentMode(swapChainSupport.presentModes);
+    VkExtent2D extent                = chooseSwapExtent(window, swapChainSupport.capabilities);
 
     std::string formatName = getFormatName(surfaceFormat.format);
     std::string presentModeName = getPresentModeName(presentMode);
@@ -42,40 +47,40 @@ void Swapchain::createSwapchain(SwapchainConfig &config)
     }
 
     VkSwapchainCreateInfoKHR createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = config.surface;
+    createInfo.sType   = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = surface;
 
-    createInfo.minImageCount = imageCount;
-    createInfo.imageFormat = surfaceFormat.format;
-    createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    createInfo.imageExtent = extent;
+    createInfo.minImageCount    = imageCount;
+    createInfo.imageFormat      = surfaceFormat.format;
+    createInfo.imageColorSpace  = surfaceFormat.colorSpace;
+    createInfo.imageExtent      = extent;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    uint32_t queueFamilyIndices[] = {config.graphicsQueueFamilyIndex, config.presentQueueFamilyIndex};
+    uint32_t queueFamilyIndices[] = {
+        m_core.getGraphicsFamilyIndex(),
+        m_core.getPresentFamilyIndex()};
 
-    if (config.graphicsQueueFamilyIndex != config.presentQueueFamilyIndex)
+    if (m_core.getGraphicsFamilyIndex() != m_core.getPresentFamilyIndex())
     {
-        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        createInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
         createInfo.queueFamilyIndexCount = 2;
-        createInfo.pQueueFamilyIndices = queueFamilyIndices;
+        createInfo.pQueueFamilyIndices   = queueFamilyIndices;
     }
     else
     {
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE;
         createInfo.queueFamilyIndexCount = 0;     // Optional
-        createInfo.pQueueFamilyIndices = nullptr; // Optional
+        createInfo.pQueueFamilyIndices   = nullptr; // Optional
     }
 
-    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+    createInfo.preTransform   = swapChainSupport.capabilities.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode    = presentMode;
+    createInfo.clipped        = VK_TRUE;
+    createInfo.oldSwapchain   = VK_NULL_HANDLE;
 
-    createInfo.presentMode = presentMode;
-    createInfo.clipped = VK_TRUE;
-
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-    if (vkCreateSwapchainKHR(config.device, &createInfo, nullptr, &this->handle) != VK_SUCCESS)
+    if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &m_handle) != VK_SUCCESS)
     {
         std::runtime_error("Failed to create swapchain");
     }
@@ -84,36 +89,36 @@ void Swapchain::createSwapchain(SwapchainConfig &config)
         std::cout << "swapchain created successfully" << std::endl;
     }
 
-    vkGetSwapchainImagesKHR(config.device, this->handle, &imageCount, nullptr);
-    this->swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(config.device, this->handle, &imageCount, this->swapChainImages.data());
+    vkGetSwapchainImagesKHR(device, m_handle, &imageCount, nullptr);
+    m_images.resize(imageCount);
+    vkGetSwapchainImagesKHR(device, m_handle, &imageCount, m_images.data());
     // remember the final format for later image‑view creation
-    this->swapChainImageFormat = surfaceFormat.format;
-    this->swapChainExtent = extent;
+    m_imageFormat = surfaceFormat.format;
+    m_extent      = extent;
 }
 
-void Swapchain::createImageViews(VkDevice device)
+void Swapchain::createImageViews()
 {
-    this->swapChainImageViews.resize(this->swapChainImages.size());
+    m_imageViews.resize(m_images.size());
 
-    for (size_t i = 0; i < this->swapChainImages.size(); i++)
+    for (size_t i = 0; i < m_images.size(); i++)
     {
         VkImageViewCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = this->swapChainImages[i];
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.format = this->swapChainImageFormat;
-        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
+        createInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        createInfo.image                           = m_images[i];
+        createInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
+        createInfo.format                          = m_imageFormat;
+        createInfo.components.r                    = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.g                    = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.b                    = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.a                    = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        createInfo.subresourceRange.baseMipLevel   = 0;
+        createInfo.subresourceRange.levelCount     = 1;
         createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
+        createInfo.subresourceRange.layerCount     = 1;
 
-        if (vkCreateImageView(device, &createInfo, nullptr, &this->swapChainImageViews[i]) != VK_SUCCESS)
+        if (vkCreateImageView(m_core.getDevice(), &createInfo, nullptr, &m_imageViews[i]) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create image views!");
         }

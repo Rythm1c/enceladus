@@ -5,35 +5,40 @@
 #include <vector>
 #include "../headers/shader.hxx"
 
+class Core;
+class Shader;
+
 struct PipelineConfig
 {
-    VkDevice device = VK_NULL_HANDLE;
-    VkRenderPass renderPass = VK_NULL_HANDLE;
-    VkExtent2D swapChainExtent = {0, 0};
-    Shader *vertShader = nullptr;
-    Shader *fragShader = nullptr;
-    VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    std::vector<VkVertexInputBindingDescription> bindingDescriptions;
+    Core                                          &core;
+    VkRenderPass                                   renderPass      = VK_NULL_HANDLE;
+    VkExtent2D                                     swapChainExtent = {0, 0};
+    Shader                                        *vertShader      = nullptr;
+    Shader                                        *fragShader      = nullptr;
+    VkPrimitiveTopology                            topology        = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    std::vector<VkVertexInputBindingDescription>   bindingDescriptions;
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+    std::vector<VkPushConstantRange>               pushConstantRanges;
+
 };
 
 class Pipeline
 {
-
-    VkPipelineLayout layout;
-    VkPipeline handle;
+    Core            &m_core;
+    VkPipelineLayout m_layout = VK_NULL_HANDLE;
+    VkPipeline       m_handle = VK_NULL_HANDLE;
 
 public:
-    Pipeline(PipelineConfig config);
-    ~Pipeline() {}
+    explicit Pipeline(PipelineConfig &config);
+    Pipeline(const Pipeline &)            = delete;
+    Pipeline &operator=(const Pipeline &) = delete;
+    Pipeline(Pipeline &&)                 = delete;
+    Pipeline &operator=(Pipeline &&)      = delete;
 
-    inline VkPipeline getHandle() const { return this->handle; }
+    ~Pipeline();
 
-    inline void clean(VkDevice device)
-    {
-        vkDestroyPipeline(device, this->handle, nullptr);
-        vkDestroyPipelineLayout(device, this->layout, nullptr);
-    }
+    VkPipeline       getHandle() const { return m_handle; }
+    VkPipelineLayout getLayout() const { return m_layout; }
 };
 
 #endif
