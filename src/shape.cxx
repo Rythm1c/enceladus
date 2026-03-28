@@ -10,7 +10,8 @@
 
 Shape::Shape(Core &core, Vector2f position)
     : m_core(core),
-      m_vertexBuffer(core)
+      m_vertexBuffer(core),
+      m_indexBuffer(core)
 {
     m_pushConstants.offset = position;
 }
@@ -27,12 +28,13 @@ void Shape::upload()
         m_vertices,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
-    /*    m_vertexBuffer.create(
-           sizeof(Vertex) * m_vertices.size(),
-           VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    */
-    // m_vertexBuffer.uploadData(m_vertices);
+    if(!m_indices.empty())
+    {
+        m_indexBuffer = createDeviceLocalBuffer(
+        m_core,
+        m_indices,
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    }
 }
 
 void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
@@ -54,6 +56,22 @@ void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(cmd, 0, 1, buffers, offsets);
 
+    if(!m_indices.empty())
+    {
+        vkCmdBindIndexBuffer(
+            cmd, 
+            m_indexBuffer.get(), 
+            0, 
+            VK_INDEX_TYPE_UINT16);
+
+        vkCmdDrawIndexed(
+            cmd, 
+            static_cast<uint32_t>(m_indices.size()), 
+            1, 
+            0, 
+            0, 
+            0);
+    }
     // Draw
     vkCmdDraw(cmd, static_cast<uint32_t>(m_vertices.size()), 1, 0, 0);
 }

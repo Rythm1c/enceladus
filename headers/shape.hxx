@@ -54,10 +54,12 @@ public:
     Vector2f    getPosition()        const { return m_pushConstants.offset; }
 
 protected:
-    Core               &m_core;
-    Buffer              m_vertexBuffer;
-    PushConstants2D     m_pushConstants;
-    std::vector<Vertex> m_vertices;  // filled by buildGeometry()
+    Core                  &m_core;
+    Buffer                m_vertexBuffer;
+    Buffer                m_indexBuffer;
+    PushConstants2D       m_pushConstants;
+    std::vector<Vertex>   m_vertices;  // filled by buildGeometry()
+    std::vector<uint16_t> m_indices;
 
     /**
      * Derived classes override this to populate m_vertices.

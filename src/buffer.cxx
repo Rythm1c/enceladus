@@ -1,6 +1,5 @@
 #include "../headers/buffer.hxx"
 #include "../headers/core.hxx"
-#include <cassert>
 
 Buffer::Buffer(Buffer &&other) noexcept
     : ref_core(other.ref_core),

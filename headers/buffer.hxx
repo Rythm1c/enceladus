@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include <cassert>
 #include <vulkan/vulkan.h>
 
 class Core;
