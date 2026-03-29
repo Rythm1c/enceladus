@@ -11,14 +11,17 @@ class Shader;
 struct PipelineConfig
 {
     Core                                          &core;
-    VkRenderPass                                   renderPass      = VK_NULL_HANDLE;
-    VkExtent2D                                     swapChainExtent = {0, 0};
-    Shader                                        *vertShader      = nullptr;
-    Shader                                        *fragShader      = nullptr;
-    VkPrimitiveTopology                            topology        = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    VkRenderPass                                   renderPass            = VK_NULL_HANDLE;
+    VkExtent2D                                     swapChainExtent       = {0, 0};
+    Shader                                        *vertShader            = nullptr;
+    Shader                                        *fragShader            = nullptr;
+    VkPrimitiveTopology                            topology              = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    VkDescriptorSetLayout                          descriptorSetLayout   = VK_NULL_HANDLE;
+
     std::vector<VkVertexInputBindingDescription>   bindingDescriptions;
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
     std::vector<VkPushConstantRange>               pushConstantRanges;
+
 
 };
 

@@ -97,13 +97,14 @@ Pipeline::Pipeline(PipelineConfig &config)
     colorBlending.attachmentCount = 1;
     colorBlending.pAttachments    = &colorBlendAttachment;
 
+    const bool hasDescriptorLayout = (config.descriptorSetLayout != VK_NULL_HANDLE);
+
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    layoutInfo.setLayoutCount         = 0;
+    layoutInfo.setLayoutCount         = hasDescriptorLayout ? 1 : 0;
+    layoutInfo.pSetLayouts            = hasDescriptorLayout ? &config.descriptorSetLayout : nullptr;
     layoutInfo.pushConstantRangeCount = static_cast<uint32_t>(config.pushConstantRanges.size());
-    layoutInfo.pPushConstantRanges    = config.pushConstantRanges.empty()
-                                            ? nullptr
-                                            : config.pushConstantRanges.data();
+    layoutInfo.pPushConstantRanges    = config.pushConstantRanges.empty() ? nullptr : config.pushConstantRanges.data();
 
     if (vkCreatePipelineLayout(device, &layoutInfo, nullptr, &m_layout) != VK_SUCCESS)
     {
