@@ -3,11 +3,14 @@
 #include "../headers/pipeline.hxx"
 #include "../headers/utils.hxx"
 #include "../headers/shape.hxx"
+#include "../headers/descriptor.hxx"
+#include "../headers/ubo.hxx"
 #include <stdexcept>
 #include <iostream>
 
 Renderer::Renderer(RendererConfig &config)
     : m_core(config.core),
+      m_descriptor(config.descriptor),
       m_renderPass(config.renderPass)
 
 {
@@ -92,6 +95,29 @@ void Renderer::beginRecording(VkRenderPass renderpass, uint32_t index, VkExtent2
 void Renderer::bindPipeline(const Pipeline &pipeline)
 {
     vkCmdBindPipeline(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getHandle());
+}
+
+void Renderer::bindDescriptors(const CameraUBO &ubo, VkPipelineLayout layout)
+{
+    // 1. Write fresh camera matrices into the UBO buffer for this frame.
+    m_descriptor.update(m_currentFrame, ubo);
+
+    // 2. Bind the descriptor set so the shader can read the UBO.
+    //
+    // vkCmdBindDescriptorSets arguments:
+    //   pipelineBindPoint → GRAPHICS (not compute)
+    //   layout            → the pipeline layout that declares set 0
+    //   firstSet = 0      → we are binding set 0 (matches `set = 0` in GLSL)
+    //   descriptorSetCount = 1
+    //   pDescriptorSets   → the set for this frame
+    //   dynamicOffsetCount = 0  → no dynamic offsets
+    VkDescriptorSet set = m_descriptor.getSet(m_currentFrame);
+    vkCmdBindDescriptorSets(
+        m_commandBuffers[m_currentFrame],
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        layout,
+        0, 1, &set,
+        0, nullptr);
 }
 
 void Renderer::drawShape(const Shape &shape, const Pipeline &pipeline)

@@ -8,6 +8,7 @@
 class Core;
 class Pipeline;
 class Shape;
+class Descriptor;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -17,6 +18,8 @@ struct RendererConfig
     VkRenderPass                    renderPass;
     VkExtent2D                      swapChainExtent;
     const std::vector<VkImageView> &swapChainImageViews;
+    Descriptor                     &descriptor;  // for per-frame UBO update + bind
+
 };
 
 
@@ -24,6 +27,7 @@ class Renderer
 {
 private:
     Core                         &m_core;
+    Descriptor                   &m_descriptor;
     VkRenderPass                 m_renderPass    = VK_NULL_HANDLE;
     uint32_t                     m_currentFrame  = 0;
     VkCommandPool                m_commandPool   = VK_NULL_HANDLE;
@@ -34,8 +38,10 @@ private:
     std::vector<VkFence>         m_inFlightFences;
     std::vector<VkFramebuffer>   m_framebuffers;
 
-    void createFramebuffers(VkRenderPass renderPass, VkExtent2D extent,
-                            const std::vector<VkImageView> &imageViews);
+    void createFramebuffers(
+        VkRenderPass renderPass, VkExtent2D extent,
+        const std::vector<VkImageView> &imageViews);
+
     void createCommandPool(uint32_t graphicsQueueFamilyIndex);
     void createCommandBuffers();
     void createSyncObjects();
@@ -64,6 +70,15 @@ public:
     // Binds a pipeline for subsequent draw calls.
     void bindPipeline(const Pipeline &pipeline);
 
+    /**
+     * Updates the UBO for the current frame and binds the descriptor set.
+     * Call this once per frame after bindPipeline() and before any drawShape().
+     *
+     * @param ubo    Fresh camera data produced by Camera::getUBO().
+     * @param layout The pipeline layout (needed by vkCmdBindDescriptorSets).
+     */
+    void bindDescriptors(const struct CameraUBO &ubo, VkPipelineLayout layout);
+
     // Records draw commands for a shape (binds VBO, pushes constants, draws).
     void drawShape(const Shape &shape, const Pipeline &pipeline);
 
@@ -72,6 +87,8 @@ public:
 
     // Submits and presents the current frame.
     void presentFrame(VkSwapchainKHR swapchain, uint32_t imageIndex);
+
+    
 };
 
 #endif
