@@ -21,6 +21,9 @@ public:
 
     // for pipeline layout creation
     VkDescriptorSetLayout getLayout() const { return m_layout; }
+
+    VkDescriptorSet getSet(uint32_t frameIndex) const { return m_sets[frameIndex]; }
+
     /**
      * Writes new camera data into the UBO buffer for @p frameIndex.
      * Call this every frame before binding the descriptor set.

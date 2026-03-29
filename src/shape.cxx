@@ -1,5 +1,6 @@
 #include "../headers/shape.hxx"
 #include "../headers/core.hxx"
+#include "../external/math/quaternion.hxx"
 
 #include <cassert>
 #include <stdexcept>
@@ -11,10 +12,7 @@
 Shape::Shape(Core &core, Vector2f position)
     : m_core(core),
       m_vertexBuffer(core),
-      m_indexBuffer(core)
-{
-    m_pushConstants.offset = position;
-}
+      m_indexBuffer(core) {}
 
 void Shape::upload()
 {
@@ -33,7 +31,7 @@ void Shape::upload()
         m_indexBuffer = createDeviceLocalBuffer(
         m_core,
         m_indices,
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
     }
 }
 
@@ -76,6 +74,21 @@ void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
     vkCmdDraw(cmd, static_cast<uint32_t>(m_vertices.size()), 1, 0, 0);
 }
 
+void Shape::setPosition(Vector3f translation)
+{
+    m_pushConstants.model = translate(translation);
+}
+
+void Shape::setRotation(float angleDeg, Vector3f axis)
+{
+    m_pushConstants.model = Quat(angleDeg,axis).toMat4x4();
+}
+
+void Shape::setScale(Vector3f s)
+{
+    m_pushConstants.model = scale(s);
+}
+
 // =============================================================================
 // Triangle
 // =============================================================================
@@ -105,8 +118,8 @@ void Triangle::buildGeometry()
     //  botL -----  botR
     //
     m_vertices = {
-        Vertex{{0.0f, -m_size}, m_colorA},   // top centre
-        Vertex{{m_size, m_size}, m_colorC},  // bottom right
+        Vertex{{0.0f,   -m_size}, m_colorA},   // top centre
+        Vertex{{m_size,  m_size}, m_colorC},  // bottom right
         Vertex{{-m_size, m_size}, m_colorB}, // bottom left
     };
 }

@@ -2,7 +2,7 @@
 #include "quaternion.hxx"
 #include <cmath>
 
-Mat4x4 identity()
+Mat4x4 Mat4x4::identity()
 {
   return Mat4x4(
       1.0, 0.0, 0.0, 0.0,

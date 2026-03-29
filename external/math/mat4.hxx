@@ -58,6 +58,10 @@ struct Mat4x4
       Vector4f row4)
       : rows{row1, row2, row3, row4} {}
 
+  /// @brief get a 4x4 identity matrix
+  /// @return 
+  static Mat4x4 identity();
+
   struct Quat toQuat() const;
   /// @brief from a row-major matrix to a column-major and vice versa
   /// @return 
@@ -65,7 +69,7 @@ struct Mat4x4
 };
 
 
-Mat4x4 identity();
+
 /// @brief create a translation matrix out of a vec3
 /// @param t translation vector
 /// @return translation mat

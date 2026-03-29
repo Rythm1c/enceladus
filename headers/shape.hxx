@@ -9,6 +9,7 @@
 
 #include "../external/math/vec2.hxx"
 #include "../external/math/vec3.hxx"
+#include "../external/math/mat4.hxx"
 
 class Core;
 
@@ -17,7 +18,7 @@ class Core;
 // =============================================================================
 struct PushConstants2D
 {
-    Vector2f offset = {0.0f, 0.0f};
+    Mat4x4 model = Mat4x4::identity();
 };
 
 // =============================================================================
@@ -50,8 +51,11 @@ public:
     void draw(VkCommandBuffer cmd, VkPipelineLayout layout) const;
 
     // ---- Transform ----------------------------------------------------------
-    void        setPosition(Vector2f pos) { m_pushConstants.offset = pos; }
-    Vector2f    getPosition()        const { return m_pushConstants.offset; }
+    void setPosition(Vector3f translation);
+    void setRotation(float angleDeg, Vector3f axis);
+    void setScale(Vector3f s);
+
+    Mat4x4 getModel() const { return m_pushConstants.model; }
 
 protected:
     Core                  &m_core;
