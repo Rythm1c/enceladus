@@ -14,6 +14,7 @@ add_executable(enceladus
     renderpass.cxx
     swapchain.cxx
     renderer.cxx
+    camera.cxx
 )
 
 target_link_libraries(enceladus
