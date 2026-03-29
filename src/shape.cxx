@@ -21,17 +21,21 @@ void Shape::upload()
 
     assert(!m_vertices.empty() && "Shape::upload — buildGeometry() left m_vertices empty!");
 
-    m_vertexBuffer = createDeviceLocalBuffer(
-        m_core,
-        m_vertices,
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    m_vertexBuffer.create(
+        sizeof(Vertex) * m_vertices.size(),
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    m_vertexBuffer.uploadDeviceLocal(m_vertices);
 
     if(!m_indices.empty())
     {
-        m_indexBuffer = createDeviceLocalBuffer(
-        m_core,
-        m_indices,
-        VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        m_indexBuffer.create(
+            sizeof(uint16_t) * m_indices.size(),
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        m_indexBuffer.uploadDeviceLocal(m_indices);
     }
 }
 
@@ -46,7 +50,7 @@ void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
         layout,
         VK_SHADER_STAGE_VERTEX_BIT,
         0,
-        sizeof(PushConstants2D),
+        sizeof(ModelPushConstants),
         &m_pushConstants);
 
     // Bind the vertex buffer

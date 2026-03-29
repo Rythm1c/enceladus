@@ -16,7 +16,7 @@ class Core;
 // =============================================================================
 // Push constants — 2D offset only for now; expand to mat4 once depth is ready
 // =============================================================================
-struct PushConstants2D
+struct ModelPushConstants
 {
     Mat4x4 model = Mat4x4::identity();
 };
@@ -61,7 +61,7 @@ protected:
     Core                  &m_core;
     Buffer                m_vertexBuffer;
     Buffer                m_indexBuffer;
-    PushConstants2D       m_pushConstants;
+    ModelPushConstants    m_pushConstants;
     std::vector<Vertex>   m_vertices;  // filled by buildGeometry()
     std::vector<uint16_t> m_indices;
 

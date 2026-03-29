@@ -7,10 +7,12 @@
 #include "../headers/core.hxx"
 #include "../headers/renderpass.hxx"
 #include "../headers/renderer.hxx"
+#include "../headers/descriptor.hxx"
 #include "../headers/pipeline.hxx"
 #include "../headers/swapchain.hxx"
 #include "../headers/vertex.hxx"
 #include "../headers/shape.hxx"
+#include "../headers/camera.hxx"
 
 int main(int argc, char *argv[])
 {
@@ -56,9 +58,11 @@ int main(int argc, char *argv[])
         VkPushConstantRange pushRange{};
         pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         pushRange.offset     = 0;
-        pushRange.size       = sizeof(PushConstants2D);
+        pushRange.size       = sizeof(ModelPushConstants);
 
         auto attribDescs = Vertex::getAttributeDescriptions();
+
+        auto descriptor = std::make_unique<Descriptor>(*core, MAX_FRAMES_IN_FLIGHT);
 
         PipelineConfig pipelineConfig{
             .core                  = *core,
@@ -66,6 +70,7 @@ int main(int argc, char *argv[])
             .swapChainExtent       = swapchain->getExtent(),
             .vertShader            = &vertShader,
             .fragShader            = &fragShader,
+            .descriptorSetLayout   = descriptor->getLayout(),
             .bindingDescriptions   = {Vertex::getBindingDescription()},
             .attributeDescriptions = {attribDescs.begin(), attribDescs.end()},
             .pushConstantRanges    = {pushRange},
@@ -78,10 +83,20 @@ int main(int argc, char *argv[])
             .renderPass          = renderPass->getHandle(),
             .swapChainExtent     = swapchain->getExtent(),
             .swapChainImageViews = swapchain->getImageViews(),
+            .descriptor          = *descriptor,
         };
         auto renderer = std::make_unique<Renderer>(rendererConfig);
 
-        Triangle triangle(*core, {0.0f, 0.0f}, 0.5f, {1.0f, 1.0f , 1.0f}, {1.0, 0.0, 0.0});
+        // ---- Camera ---------------------------------------------------------
+        Camera camera(
+            Vector3f{ 0.0f,  0.0f, 3.0f},   // position: 3 units back
+            Vector3f{ 0.0f,  0.0f, 1.0f},   // target:   origin
+            Vector3f{ 0.0f, -1.0f, 0.0f},   // up:       Y-up (Vulkan corrected)
+            45.0f,
+            static_cast<float>(window_width) / static_cast<float>(window_height));
+
+        Triangle triangle(*core);
+        triangle.setScale({6.0, 6.0, 6.0});
         triangle.upload();
 
         // Main loop
@@ -109,6 +124,7 @@ int main(int argc, char *argv[])
 
             { // Render a frame
                 renderer->clearColor(0.2, 0.6, 0.3);
+
                 uint32_t frameIndex = renderer->getFrame(
                     swapchain->getHandle(),
                     swapchain->getExtent());
@@ -119,6 +135,9 @@ int main(int argc, char *argv[])
                     swapchain->getExtent());
 
                 renderer->bindPipeline(*pipeline);
+
+                renderer->bindDescriptors(camera.getUBO(), pipeline->getLayout());
+
                 renderer->drawShape(triangle, *pipeline);
 
                 renderer->endRecording();
