@@ -104,18 +104,10 @@ void Descriptor::createSetsAndBuffers()
     for (uint32_t i = 0; i < m_framesInFlight; ++i)
     {
         // Emplace constructs Buffer in-place (Buffer is non-copyable)
-        m_uboBuffers.emplace_back(m_core);
-        m_uboBuffers[i].create(
-            sizeof(CameraUBO),
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            // HOST_VISIBLE  → CPU can write to it via vkMapMemory
-            // HOST_COHERENT → writes are immediately visible to the GPU,
-            //                 no explicit flush needed
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        // Keep the buffer persistently mapped — avoids map/unmap every frame
-        m_uboBuffers[i].mapPersistent();
+        m_uboBuffers.push_back(createDeviceLocalBuffer(
+            m_core,
+            std::vector<CameraUBO>{}, // empty data; we'll fill it in update()
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT));
 
         /**
          * vkUpdateDescriptorSets "wires" the descriptor set to the buffer.
