@@ -90,14 +90,17 @@ int main(int argc, char *argv[])
         // ---- Camera ---------------------------------------------------------
         Camera camera(
             Vector3f{ 0.0f,  0.0f, 3.0f},   // position: 3 units back
-            Vector3f{ 0.0f,  0.0f, 1.0f},   // target:   origin
+            Vector3f{ 0.0f,  0.0f, 1.0f},   // target direction: towards -Z
             Vector3f{ 0.0f, -1.0f, 0.0f},   // up:       Y-up (Vulkan corrected)
             45.0f,
-            static_cast<float>(window_width) / static_cast<float>(window_height));
+            static_cast<float>(window_width) / static_cast<float>(window_height),
+            0.1f,   // near plane
+            100.0f  // far plane
+        );
 
         Triangle triangle(*core);
-        triangle.setScale({6.0, 6.0, 6.0});
         triangle.upload();
+        //triangle.setRotation(180, {0.0, 1.0, 0.0});
 
         // Main loop
         bool running = true;
@@ -123,7 +126,7 @@ int main(int argc, char *argv[])
             }
 
             { // Render a frame
-                renderer->clearColor(0.2, 0.6, 0.3);
+                renderer->clearColor(0.2, 0.3, 0.6);
 
                 uint32_t frameIndex = renderer->getFrame(
                     swapchain->getHandle(),

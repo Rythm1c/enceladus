@@ -23,8 +23,7 @@ layout(push_constant) uniform Model {
     mat4 model;
 } push;
 
-void main()
-{
+void main() {
     // MVP transform:
     //   model  → local space  to world space
     //   view   → world space  to camera/eye space
@@ -33,5 +32,5 @@ void main()
     // vec4(pos, 0.0, 1.0) promotes the 2D vertex to 3D with z=0 (flat on the
     // near plane) and w=1 (a position, not a direction).
     gl_Position = camera.proj * camera.view * push.model * vec4(pos, 0.0, 1.0);
-    fragColor   = col;
+    fragColor = col;
 }

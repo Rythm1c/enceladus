@@ -27,7 +27,7 @@ CameraUBO Camera::getUBO() const
 {
     CameraUBO ubo{};
 
-    ubo.view = look_at(m_position, m_target, m_up);
+    ubo.view = look_at(m_position, m_position - m_target, m_up).transpose();
 
     // glm::perspective produces a matrix for OpenGL's clip space where Z runs
     // from -1 to 1.  Vulkan uses 0 to 1, so we flip the sign of element [1][1]
@@ -36,7 +36,7 @@ CameraUBO Camera::getUBO() const
         m_fovDeg,
         m_aspect,
         m_nearPlane,
-        m_farPlane);
+        m_farPlane).transpose();
 
     // GLM was designed for OpenGL, where Y in clip space is flipped relative
     // to Vulkan.  Negating proj[1][1] corrects for this without needing a

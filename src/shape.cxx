@@ -12,7 +12,10 @@
 Shape::Shape(Core &core, Vector2f position)
     : m_core(core),
       m_vertexBuffer(core),
-      m_indexBuffer(core) {}
+      m_indexBuffer(core) 
+{
+    m_pushConstants = ModelPushConstants{};
+}
 
 void Shape::upload()
 {
@@ -123,7 +126,7 @@ void Triangle::buildGeometry()
     //
     m_vertices = {
         Vertex{{0.0f,   -m_size}, m_colorA},   // top centre
-        Vertex{{m_size,  m_size}, m_colorC},  // bottom right
-        Vertex{{-m_size, m_size}, m_colorB}, // bottom left
+        Vertex{{-m_size, m_size}, m_colorB},  // bottom left
+        Vertex{{m_size,  m_size}, m_colorC}, // bottom right
     };
 }
