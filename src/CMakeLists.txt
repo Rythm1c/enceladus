@@ -1,4 +1,7 @@
-# add all source files for the executable
+# ---------------------------------------------------------------------------
+# src/CMakeLists.txt
+# ---------------------------------------------------------------------------
+
 add_executable(enceladus
     main.cxx
     buffer.cxx
@@ -13,25 +16,19 @@ add_executable(enceladus
     renderer.cxx
 )
 
-# Link libraries
-# On MinGW/SDL2 builds the SDL2main library provides the WinMain
-# entry point wrapper; without it the linker will complain of an
-# undefined reference to `WinMain` when targeting the Windows GUI
-# subsystem.  The imported target `SDL2::SDL2` doesn't automatically
-# pull in SDL2main, so we link both targets explicitly.
 target_link_libraries(enceladus
     PRIVATE
         Vulkan::Vulkan
-        # SDL2main depends on SDL2 symbols, so it must come *before*
-        # the core SDL2 library on the command line (linker order is
-        # significant when using static archives under MinGW).
-        SDL2::SDL2main
+        SDL2::SDL2main   # must come before SDL2::SDL2 (linker order)
         SDL2::SDL2
+        enceladus_math   # your custom math library
+        imgui            # Dear ImGui (Vulkan + SDL2 backends)
 )
 
-# Include directories
 target_include_directories(enceladus
     PRIVATE
         ${PROJECT_SOURCE_DIR}/src
         ${PROJECT_SOURCE_DIR}/headers
+        # enceladus_math and imgui expose their own include dirs via PUBLIC
+        # in their own CMakeLists, so no need to repeat them here.
 )

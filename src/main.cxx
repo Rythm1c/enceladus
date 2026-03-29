@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
         };
         auto renderer = std::make_unique<Renderer>(rendererConfig);
 
-        Triangle triangle(*core, {0.0f, 0.0f}, 0.5f, {1.0f, 1.0f , 1.0f});
+        Triangle triangle(*core, {0.0f, 0.0f}, 0.5f, {1.0f, 1.0f , 1.0f}, {1.0, 0.0, 0.0});
         triangle.upload();
 
         // Main loop
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
             }
 
             { // Render a frame
-
+                renderer->clearColor(0.2, 0.6, 0.3);
                 uint32_t frameIndex = renderer->getFrame(
                     swapchain->getHandle(),
                     swapchain->getExtent());
