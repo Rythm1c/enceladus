@@ -4,12 +4,12 @@
 
 float to_radians(float degs)
 {
-  float radian = PIE / 180.0f;
+  float radian = PI / 180.0f;
   return degs * radian;
 }
 float to_degrees(float rads)
 {
-  float scale = 180.0f / PIE;
+  float scale = 180.0f / PI;
   return rads * scale;
 }
 // random float number generator

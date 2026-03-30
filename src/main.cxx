@@ -98,15 +98,18 @@ int main(int argc, char *argv[])
             static_cast<float>(window_width) / static_cast<float>(window_height)
         );
 
-        Triangle triangle(*core);
+        /* Triangle triangle(*core);
         triangle.upload();
-        triangle.setScale({1.5f, 1.5f, 1.0f});
-        //triangle.setRotation(360.0f, {0.0f, 0.0f, 1.0f});
-        //triangle.setRotation(180, {0.0, 1.0, 0.0});
+        triangle.setScale({1.5f, 1.5f, 1.0f}); */
+        
 
         Cube cube(*core);
         cube.upload();
         cube.setPosition({ 1.5f, 0.0f, 0.0f});
+
+        Icosphere sphere(*core, 1.0, 5);
+        sphere.upload();
+        sphere.setPosition({-1.5, 0.0f, 0.0f});
 
         // ---- Timing ---------------------------------------------------------
         uint64_t lastTicks  = SDL_GetTicks64();
@@ -148,7 +151,7 @@ int main(int argc, char *argv[])
                     break;
                 case SDL_MOUSEMOTION:
                     // SDL_RELATIVEMOTION gives pixel deltas -- directly drive yaw/pitch
-                     if (event.button.button == SDL_BUTTON_LEFT)
+                    if (event.button.button == SDL_BUTTON_LEFT)
                     {
                         camera.processMouse(
                             static_cast<float>(event.motion.xrel),
@@ -165,12 +168,18 @@ int main(int argc, char *argv[])
             // only fire once on press).
             {
                 const Uint8 *keys = SDL_GetKeyboardState(nullptr);
-                if (keys[SDL_SCANCODE_W]) camera.processKeyboard(CameraMovement::Forward,  deltaTime);
-                if (keys[SDL_SCANCODE_S]) camera.processKeyboard(CameraMovement::Backward, deltaTime);
-                if (keys[SDL_SCANCODE_A]) camera.processKeyboard(CameraMovement::Left,     deltaTime);
-                if (keys[SDL_SCANCODE_D]) camera.processKeyboard(CameraMovement::Right,    deltaTime);
-                if (keys[SDL_SCANCODE_E]) camera.processKeyboard(CameraMovement::Up,       deltaTime);
-                if (keys[SDL_SCANCODE_Q]) camera.processKeyboard(CameraMovement::Down,     deltaTime);
+                if (keys[SDL_SCANCODE_W])
+                    camera.processKeyboard(CameraMovement::Forward,  deltaTime);
+                if (keys[SDL_SCANCODE_S])
+                    camera.processKeyboard(CameraMovement::Backward, deltaTime);
+                if (keys[SDL_SCANCODE_A]) 
+                    camera.processKeyboard(CameraMovement::Left,     deltaTime);
+                if (keys[SDL_SCANCODE_D]) 
+                    camera.processKeyboard(CameraMovement::Right,    deltaTime);
+                if (keys[SDL_SCANCODE_E]) 
+                    camera.processKeyboard(CameraMovement::Up,       deltaTime);
+                if (keys[SDL_SCANCODE_Q]) 
+                    camera.processKeyboard(CameraMovement::Down,     deltaTime);
             }
 
             { // Render a frame
@@ -189,8 +198,9 @@ int main(int argc, char *argv[])
 
                 renderer->bindDescriptors(camera.getUBO(), pipeline->getLayout());
 
-                renderer->drawShape(triangle, *pipeline);
+                //renderer->drawShape(triangle, *pipeline);
                 renderer->drawShape(cube,     *pipeline);
+                renderer->drawShape(sphere,   *pipeline);
 
                 renderer->endRecording();
                 renderer->presentFrame(swapchain->getHandle(), frameIndex);

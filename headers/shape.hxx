@@ -114,4 +114,54 @@ private:
     void buildGeometry() override;
 };
 
+// =============================================================================
+// Icosphere -- subdivided icosahedron, good for physics collision normals.
+//
+// subdivision = 0 : 12 verts,   20 faces  (original icosahedron)
+// subdivision = 1 : 42 verts,   80 faces
+// subdivision = 2 : 162 verts,  320 faces
+// subdivision = 3 : 642 verts,  1280 faces  (recommended default)
+// subdivision = 4 : 2562 verts, 5120 faces  (high quality, heavier)
+// =============================================================================
+class Icosphere : public Shape
+{
+public:
+    explicit Icosphere(
+        Core    &core,
+        float    radius       = 0.5f,
+        int      subdivisions = 3,
+        Vector3f color        = {0.7f, 0.7f, 0.9f});
+private:
+    float    m_radius;
+    int      m_subdivisions;
+    Vector3f m_color;
+    void buildGeometry() override;
+};
+
+// =============================================================================
+// Plane -- flat XZ quad, normal pointing up (+Y).
+// Use as physics floor / ground plane.
+// =============================================================================
+class Plane : public Shape
+{
+public:
+    /**
+     * @param core   Core reference.
+     * @param size   Half-extent in X and Z (total side = size * 2).
+     * @param color  Surface colour.
+     * @param tileUV UV tile count across the plane (useful for grid textures).
+     */
+    explicit Plane(
+        Core     &core,
+        float    size   = 10.0f,
+        Vector3f color  = {0.4f, 0.45f, 0.4f},
+        float    tileUV = 1.0f);
+private:
+    float    m_size;
+    Vector3f m_color;
+    float    m_tileUV;
+    void buildGeometry() override;
+};
+
+
 #endif // SHAPE_HXX

@@ -3,7 +3,7 @@
 
 #include <math.h>
 
-#define PIE 3.141592f
+#define PI 3.141592f
 #define VEC3_EPSILON 0.000001f
 
 // convert degrees to radians
