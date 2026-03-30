@@ -63,7 +63,7 @@ protected:
     Buffer                m_vertexBuffer;
     Buffer                m_indexBuffer;
     Transform             model;
-    std::vector<Vertex>   m_vertices;  // filled by buildGeometry()
+    std::vector<Vertex3D> m_vertices;  // filled by buildGeometry()
     std::vector<uint16_t> m_indices;
 
     /**
@@ -99,6 +99,18 @@ private:
     Vector3f m_colorB;
     Vector3f m_colorC;
 
+    void buildGeometry() override;
+};
+
+class Cube : public Shape
+{
+public:
+    explicit Cube(
+        Core &core, float size = 0.5f,
+        Vector3f color = {-1.0f, -1.0f, -1.0f});
+private:
+    float     m_size;
+    Vector3f  m_color;
     void buildGeometry() override;
 };
 

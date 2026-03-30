@@ -5,8 +5,9 @@
 Swapchain::Swapchain(Core &core, SDL_Window *window)
     : m_core(core)
 {
-    this->createSwapchain(window);
-    this->createImageViews();
+    createSwapchain(window);
+    createImageViews();
+    createDepthBuffer();
 }
 
 Swapchain::~Swapchain()
@@ -125,4 +126,9 @@ void Swapchain::createImageViews()
     }
 
     std::cout << "Swapchain image views created successfully" << std::endl;
+}
+void Swapchain::createDepthBuffer()
+{
+    m_depthBuffer = std::make_unique<DepthBuffer>(m_core, m_extent);
+    std::cout << "Depth buffer created\n";
 }
