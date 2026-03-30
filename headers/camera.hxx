@@ -37,7 +37,7 @@ public:
         Vector3f position    = { 0.0f,  0.0f,  3.0f},
         float    yaw         = -90.0f,   // looking toward -Z initially
         float    pitch       = 0.0f,
-        Vector3f worldUp     = { 0.0f,  1.0f,  0.0f},
+        Vector3f worldUp     = { 0.0f,  -1.0f,  0.0f},
         float    fovDeg      = 45.0f,
         float    aspect      = 800.0f / 600.0f,
         float    nearPlane   = 0.1f,

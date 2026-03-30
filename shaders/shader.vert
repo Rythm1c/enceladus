@@ -1,36 +1,39 @@
 #version 450
 
-// ---- Vertex attributes (from the vertex buffer) ----------------------------
+// ---- Inputs (must match Vertex3D layout in vertex.hxx) ---------------------
 layout(location = 0) in vec3 pos;
-layout(location = 1) in vec3 col;
+layout(location = 1) in vec3 normal;
+layout(location = 2) in vec2 uv;
+layout(location = 3) in vec3 color;
 
-// ---- Output to fragment shader ---------------------------------------------
+// ---- Outputs to fragment shader --------------------------------------------
 layout(location = 0) out vec3 fragColor;
+layout(location = 1) out vec3 fragNormal;
+layout(location = 2) out vec2 fragUV;
 
-// ---- Descriptor set 0, binding 0 — Camera UBO ------------------------------
-// This is the same struct as CameraUBO in C++.
-// `set = 0` matches firstSet = 0 in vkCmdBindDescriptorSets.
-// `binding = 0` matches the VkDescriptorSetLayoutBinding we created.
+// ---- Descriptor set 0, binding 0 -- Camera UBO ----------------------------
 layout(set = 0, binding = 0) uniform Camera {
     mat4 view;
     mat4 proj;
 } camera;
 
-// ---- Push constant — model matrix ------------------------------------------
-// Cheapest way to get per-object data to the shader.
-// Matches ModelPushConstants in C++ exactly (64 bytes, offset 0).
+// ---- Push constant -- per-object model matrix ------------------------------
 layout(push_constant) uniform Model {
     mat4 model;
 } push;
 
-void main() {
-    // MVP transform:
-    //   model  → local space  to world space
-    //   view   → world space  to camera/eye space
-    //   proj   → camera space to clip space (Vulkan NDC)
-    //
-    // vec4(pos, 0.0, 1.0) promotes the 2D vertex to 3D with z=0 (flat on the
-    // near plane) and w=1 (a position, not a direction).
-    gl_Position = camera.proj * camera.view * push.model * vec4(pos, 1.0);
-    fragColor = col;
+void main()
+{
+    // Full MVP transform
+    gl_Position = camera.proj * camera.view * push.model *  vec4(pos, 1.0);
+
+    fragColor  = color;
+
+    // Transform normal into world space for lighting calculations.
+    // The normal matrix removes translation and handles non-uniform scale
+    // correctly. transpose(inverse(...)) is expensive per-vertex; move this
+    // to a UBO as a precomputed mat3 when you add lighting.
+    fragNormal = mat3(transpose(inverse(push.model))) * normal;
+
+    fragUV = uv;
 }

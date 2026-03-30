@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
         Triangle triangle(*core);
         triangle.upload();
         triangle.setScale({1.5f, 1.5f, 1.0f});
-        triangle.setRotation(360.0f, {0.0f, 0.0f, 1.0f});
+        //triangle.setRotation(360.0f, {0.0f, 0.0f, 1.0f});
         //triangle.setRotation(180, {0.0, 1.0, 0.0});
 
         Cube cube(*core);
@@ -118,6 +118,10 @@ int main(int argc, char *argv[])
 
         while (running)
         {
+            const uint64_t now = SDL_GetTicks64();
+            deltaTime  = static_cast<float>(now - lastTicks) / 1000.0f;
+            lastTicks  = now;
+
             while (SDL_PollEvent(&event))
             {
                 switch (event.type)
@@ -144,9 +148,12 @@ int main(int argc, char *argv[])
                     break;
                 case SDL_MOUSEMOTION:
                     // SDL_RELATIVEMOTION gives pixel deltas -- directly drive yaw/pitch
-                    camera.processMouse(
-                        static_cast<float>(event.motion.xrel),
-                        static_cast<float>(event.motion.yrel));
+                     if (event.button.button == SDL_BUTTON_LEFT)
+                    {
+                        camera.processMouse(
+                            static_cast<float>(event.motion.xrel),
+                            static_cast<float>(event.motion.yrel));
+                    }
                     break;
 
                 default: break;

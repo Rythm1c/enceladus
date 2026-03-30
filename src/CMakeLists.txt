@@ -8,6 +8,7 @@ add_executable(enceladus
     vertex.cxx
     shape.cxx
     utils.cxx
+    texture.cxx
     core.cxx
     shader.cxx
     pipeline.cxx

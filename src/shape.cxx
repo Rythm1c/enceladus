@@ -47,7 +47,7 @@ void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
     assert(m_vertexBuffer.isCreated() && "Shape::draw called before upload(). Call shape.upload() after construction.");
 
     ModelPushConstants pushConstants{
-        .model = this->getModel(),
+        .model = this->getModel().transpose(),
     };
     // Push the 2D offset
     vkCmdPushConstants(
@@ -129,9 +129,9 @@ void Triangle::buildGeometry()
     //  botL -----  botR
     //
     m_vertices = {
-        Vertex3D{{0.0f,   -m_size, 1.0}, m_colorA},   // top centre
-        Vertex3D{{-m_size, m_size, 1.0}, m_colorB},  // bottom left
-        Vertex3D{{m_size,  m_size, 1.0}, m_colorC}, // bottom right
+        Vertex3D{{0.0f,    m_size, 1.0},{0.0, 0.0, 1.0},{0.5, 0.5}, m_colorA},   // top centre
+        Vertex3D{{-m_size,-m_size, 1.0},{0.0, 0.0, 1.0},{0.0, 0.0}, m_colorB},  // bottom left
+        Vertex3D{{m_size, -m_size, 1.0},{0.0, 0.0, 1.0},{0.0, 1.0}, m_colorC}, // bottom right
     };
 }
 
@@ -157,31 +157,30 @@ void Cube::buildGeometry()
     // losing per-face normals for lighting).
     struct FaceDesc {
         Vector3f normal;
-        // 4 corners in CCW winding order (Vulkan front face = clockwise by
-        // default in our pipeline, but we set it in the rasteriser)
+        // 4 corners in CCW winding order 
         std::array<Vector3f, 4> positions;
         std::array<Vector2f, 4> uvs;
     };
 
     const std::array<FaceDesc, 6> faces = {{
         // +X face (right)
-        { { 1, 0, 0}, {{{ s,-s,-s},{ s, s,-s},{ s, s, s},{ s,-s, s}}},
-          {{{0,1},{0,0},{1,0},{1,1}}} },
+        { { 1, 0, 0}, {{{ s,-s, s},{ s,-s,-s},{ s, s,-s},{ s, s, s}}},
+                        {{{0,0},   {1,0},      {1,1},      {0,1}}} },
         // -X face (left)
-        { {-1, 0, 0}, {{{-s,-s, s},{-s, s, s},{-s, s,-s},{-s,-s,-s}}},
-          {{{0,1},{0,0},{1,0},{1,1}}} },
+        { {-1, 0, 0}, {{{-s,-s,-s},{-s,-s, s},{-s, s, s},{-s, s, -s}}},
+                        {{{0,0},   {1,0},      {1,1},      {0,1}}} },
         // +Y face (up)
-        { { 0, 1, 0}, {{{-s, s,-s},{-s, s, s},{ s, s, s},{ s, s,-s}}},
-          {{{0,1},{0,0},{1,0},{1,1}}} },
+        { { 0, 1, 0}, {{{-s, s, s}, {s, s, s},{ s, s,-s},{ -s, s,-s}}},
+                        {{{0,0},   {1,0},      {1,1},      {0,1}}} },
         // -Y face (down)
-        { { 0,-1, 0}, {{{-s,-s, s},{-s,-s,-s},{ s,-s,-s},{ s,-s, s}}},
-          {{{0,1},{0,0},{1,0},{1,1}}} },
-        // +Z face (front)
-        { { 0, 0, 1}, {{{-s,-s, s},{-s, s, s},{ s, s, s},{ s,-s, s}}},
-          {{{0,1},{0,0},{1,0},{1,1}}} },
+        { { 0,-1, 0}, {{{ s,-s, s}, {-s,-s, s}, {-s,-s,-s}, { s,-s,-s}}},
+                        {{{0,1},     {0,0},      {1,0},      {1,1}}} },
+        // +Z face (front)  towards camera by default since we look down -Z
+        { { 0, 0, 1}, {{{-s,-s, s},{s, -s, s},{ s, s, s},{-s, s, s}}},
+                        {{{0,0},   {1,0},      {1,1},      {0,1}}} },
         // -Z face (back)
-        { { 0, 0,-1}, {{{ s,-s,-s},{ s, s,-s},{-s, s,-s},{-s,-s,-s}}},
-          {{{0,1},{0,0},{1,0},{1,1}}} },
+        { { 0, 0,-1}, {{{ s,-s,-s},{-s,-s,-s},{-s, s,-s},{ s, s,-s}}},
+                        {{{0,0},   {1,0},      {1,1},      {0,1}}} },
     }};
 
     m_vertices.clear();
