@@ -8,7 +8,7 @@ class Core;
 class RenderPass
 {
     public:
-    RenderPass(Core &core, VkFormat swapChainImageFormat);
+    RenderPass(Core &core, VkFormat colorFormat, VkFormat depthFormat);
     ~RenderPass();
 
     RenderPass(const RenderPass &)            = delete;
