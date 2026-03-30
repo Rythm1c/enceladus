@@ -6,6 +6,7 @@
 #include "../headers/descriptor.hxx"
 #include "../headers/ubo.hxx"
 #include <stdexcept>
+#include <array>
 #include <iostream>
 
 Renderer::Renderer(RendererConfig &config)
@@ -14,7 +15,7 @@ Renderer::Renderer(RendererConfig &config)
       m_renderPass(config.renderPass)
 
 {
-    createFramebuffers(config.renderPass, config.swapChainExtent, config.swapChainImageViews);
+    createFramebuffers(config.renderPass, config.swapChainExtent, config.swapChainImageViews, config.depthImageView);
     createCommandPool(m_core.getGraphicsFamilyIndex());
     createCommandBuffers();
     createSyncObjects();
@@ -64,7 +65,12 @@ void Renderer::beginRecording(VkRenderPass renderpass, uint32_t index, VkExtent2
     if (vkBeginCommandBuffer(cmd, &beginInfo) != VK_SUCCESS)
         throw std::runtime_error("Renderer: vkBeginCommandBuffer failed!");
 
-    VkClearValue clearColor = {{{m_clearColor[0], m_clearColor[1], m_clearColor[2], 1.0f}}};
+    // Two clear values -- order must match attachment order in RenderPass:
+    //   [0] colour  → black, fully opaque
+    //   [1] depth   → 1.0 (far plane) so every real fragment passes the LESS test
+    std::array<VkClearValue, 2> clearValues{};
+    clearValues[0].color        = {{0.0f, 0.0f, 0.0f, 1.0f}};
+    clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -72,8 +78,8 @@ void Renderer::beginRecording(VkRenderPass renderpass, uint32_t index, VkExtent2
     renderPassInfo.framebuffer       = m_framebuffers[index];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = extent;
-    renderPassInfo.clearValueCount   = 1;
-    renderPassInfo.pClearValues      = &clearColor;
+    renderPassInfo.clearValueCount   = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues      = clearValues.data();
 
     vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -171,17 +177,23 @@ void Renderer::presentFrame(VkSwapchainKHR swapchain, uint32_t imageIndex)
 // Private setup
 // =============================================================================
 
-void Renderer::createFramebuffers(VkRenderPass renderPass, VkExtent2D extent, const std::vector<VkImageView> &imageViews)
+void Renderer::createFramebuffers(VkRenderPass renderPass, VkExtent2D extent, const std::vector<VkImageView> &imageViews, VkImageView depthView)
 {
     m_framebuffers.resize(imageViews.size());
 
     for (size_t i = 0; i < imageViews.size(); ++i)
     {
+        // Attachment order must match the render pass attachment descriptions:
+        //   0 = colour (per-swapchain-image)
+        //   1 = depth  (one shared image for all framebuffers -- only one
+        //               frame is in flight per framebuffer at a time)
+        std::array<VkImageView, 2> attachments = {imageViews[i], depthView};
+        
         VkFramebufferCreateInfo fbInfo{};
         fbInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         fbInfo.renderPass      = renderPass;
-        fbInfo.attachmentCount = 1;
-        fbInfo.pAttachments    = &imageViews[i];
+        fbInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        fbInfo.pAttachments    = attachments.data();
         fbInfo.width           = extent.width;
         fbInfo.height          = extent.height;
         fbInfo.layers          = 1;

@@ -18,6 +18,7 @@ struct RendererConfig
     VkRenderPass                    renderPass;
     VkExtent2D                      swapChainExtent;
     const std::vector<VkImageView> &swapChainImageViews;
+    VkImageView                     depthImageView;
     Descriptor                     &descriptor;  // for per-frame UBO update + bind
 
 };
@@ -40,7 +41,7 @@ private:
 
     void createFramebuffers(
         VkRenderPass renderPass, VkExtent2D extent,
-        const std::vector<VkImageView> &imageViews);
+        const std::vector<VkImageView> &imageViews, VkImageView depthView);
 
     void createCommandPool(uint32_t graphicsQueueFamilyIndex);
     void createCommandBuffers();
