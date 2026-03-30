@@ -8,7 +8,7 @@
 
 struct Vertex
 {
-    Vector2f pos;
+    Vector3f pos;
     Vector3f col;
 
     static VkVertexInputBindingDescription                getBindingDescription();

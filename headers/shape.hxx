@@ -10,6 +10,7 @@
 #include "../external/math/vec2.hxx"
 #include "../external/math/vec3.hxx"
 #include "../external/math/mat4.hxx"
+#include "../external/math/transform.hxx"
 
 class Core;
 
@@ -55,13 +56,13 @@ public:
     void setRotation(float angleDeg, Vector3f axis);
     void setScale(Vector3f s);
 
-    Mat4x4 getModel() const { return m_pushConstants.model; }
+    Mat4x4 getModel() const { return model.toMat4x4(); }
 
 protected:
     Core                  &m_core;
     Buffer                m_vertexBuffer;
     Buffer                m_indexBuffer;
-    ModelPushConstants    m_pushConstants;
+    Transform             model;
     std::vector<Vertex>   m_vertices;  // filled by buildGeometry()
     std::vector<uint16_t> m_indices;
 

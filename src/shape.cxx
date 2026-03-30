@@ -14,7 +14,7 @@ Shape::Shape(Core &core, Vector2f position)
       m_vertexBuffer(core),
       m_indexBuffer(core) 
 {
-    m_pushConstants = ModelPushConstants{};
+    model = Transform();
 }
 
 void Shape::upload()
@@ -44,9 +44,11 @@ void Shape::upload()
 
 void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
 {
-    assert(m_vertexBuffer.isCreated() &&
-           "Shape::draw called before upload(). Call shape.upload() after construction.");
+    assert(m_vertexBuffer.isCreated() && "Shape::draw called before upload(). Call shape.upload() after construction.");
 
+    ModelPushConstants pushConstants{
+        .model = this->getModel(),
+    };
     // Push the 2D offset
     vkCmdPushConstants(
         cmd,
@@ -54,7 +56,7 @@ void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
         VK_SHADER_STAGE_VERTEX_BIT,
         0,
         sizeof(ModelPushConstants),
-        &m_pushConstants);
+        &pushConstants);
 
     // Bind the vertex buffer
     VkBuffer buffers[] = {m_vertexBuffer.get()};
@@ -83,17 +85,17 @@ void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
 
 void Shape::setPosition(Vector3f translation)
 {
-    m_pushConstants.model = translate(translation);
+    model.translation = translation;
 }
 
 void Shape::setRotation(float angleDeg, Vector3f axis)
 {
-    m_pushConstants.model = Quat(angleDeg,axis).toMat4x4();
+    model.orientation = Quat(angleDeg, axis);
 }
 
 void Shape::setScale(Vector3f s)
 {
-    m_pushConstants.model = scale(s);
+    model.scaling = s;
 }
 
 // =============================================================================
@@ -125,8 +127,8 @@ void Triangle::buildGeometry()
     //  botL -----  botR
     //
     m_vertices = {
-        Vertex{{0.0f,   -m_size}, m_colorA},   // top centre
-        Vertex{{-m_size, m_size}, m_colorB},  // bottom left
-        Vertex{{m_size,  m_size}, m_colorC}, // bottom right
+        Vertex{{0.0f,   -m_size, 1.0}, m_colorA},   // top centre
+        Vertex{{-m_size, m_size, 1.0}, m_colorB},  // bottom left
+        Vertex{{m_size,  m_size, 1.0}, m_colorC}, // bottom right
     };
 }

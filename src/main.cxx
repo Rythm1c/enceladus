@@ -100,6 +100,8 @@ int main(int argc, char *argv[])
 
         Triangle triangle(*core);
         triangle.upload();
+        triangle.setScale({1.5f, 1.5f, 1.0f});
+        triangle.setRotation(360.0f, {0.0f, 0.0f, 1.0f});
         //triangle.setRotation(180, {0.0, 1.0, 0.0});
 
         // Main loop
@@ -146,7 +148,6 @@ int main(int argc, char *argv[])
                 renderer->endRecording();
                 renderer->presentFrame(swapchain->getHandle(), frameIndex);
 
-                // renderer->presentFrame(renderInfo);
             }
         }
 

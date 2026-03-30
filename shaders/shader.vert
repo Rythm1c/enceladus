@@ -1,7 +1,7 @@
 #version 450
 
 // ---- Vertex attributes (from the vertex buffer) ----------------------------
-layout(location = 0) in vec2 pos;
+layout(location = 0) in vec3 pos;
 layout(location = 1) in vec3 col;
 
 // ---- Output to fragment shader ---------------------------------------------
@@ -31,6 +31,6 @@ void main() {
     //
     // vec4(pos, 0.0, 1.0) promotes the 2D vertex to 3D with z=0 (flat on the
     // near plane) and w=1 (a position, not a direction).
-    gl_Position = camera.proj * camera.view * push.model * vec4(pos, 0.0, 1.0);
+    gl_Position = camera.proj * camera.view * push.model * vec4(pos, 1.0);
     fragColor = col;
 }
