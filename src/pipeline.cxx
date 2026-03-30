@@ -120,7 +120,18 @@ Pipeline::Pipeline(PipelineConfig &config)
     pipelineInfo.pViewportState      = &viewportState;
     pipelineInfo.pRasterizationState = &rasterizer;
     pipelineInfo.pMultisampleState   = &multisampling;
-    pipelineInfo.pDepthStencilState  = nullptr; // Optional
+
+    // Depth testing -- fragments closer to the camera (lower depth value) win.
+    // depthWriteEnable must also be true or the depth buffer never gets updated.
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable       = VK_TRUE;
+    depthStencil.depthWriteEnable      = VK_TRUE;
+    depthStencil.depthCompareOp        = VK_COMPARE_OP_LESS; // closer fragment wins
+    depthStencil.depthBoundsTestEnable = VK_FALSE;           // no min/max depth clamping
+    depthStencil.stencilTestEnable     = VK_FALSE;           // no stencil yet
+
+    pipelineInfo.pDepthStencilState  = &depthStencil; // Optional
     pipelineInfo.pColorBlendState    = &colorBlending;
     pipelineInfo.pDynamicState       = &dynamicState;
     pipelineInfo.layout              = m_layout;
