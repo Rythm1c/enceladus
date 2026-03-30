@@ -4,6 +4,16 @@
 #include "../external/math/math.hxx"
 #include "ubo.hxx"
 
+enum class CameraMovement
+{
+    Forward,
+    Backward,
+    Left,
+    Right,
+    Up,
+    Down
+};
+
 /**
  * Camera — owns view and projection parameters and produces a CameraUBO
  * ready to upload to the GPU each frame.
@@ -24,39 +34,68 @@ public:
      * @param farPlane   Far clip distance.
      */
     Camera(
-        Vector3f  position  = {0.0f, 0.0f,  3.0f},
-        Vector3f  target    = {0.0f, 0.0f,  0.0f},
-        Vector3f  up        = {0.0f, -1.0f, 0.0f},  // Vulkan Y-axis points down
-        float     fovDeg    = 45.0f,
-        float     aspect    = 800.0f / 600.0f,
-        float     nearPlane = 0.1f,
-        float     farPlane  = 100.0f
-    );
+        Vector3f position    = { 0.0f,  0.0f,  3.0f},
+        float    yaw         = -90.0f,   // looking toward -Z initially
+        float    pitch       = 0.0f,
+        Vector3f worldUp     = { 0.0f,  1.0f,  0.0f},
+        float    fovDeg      = 45.0f,
+        float    aspect      = 800.0f / 600.0f,
+        float    nearPlane   = 0.1f,
+        float    farPlane    = 100.0f,
+        float    moveSpeed   = 5.0f,
+        float    sensitivity = 0.1f);
 
-    void setPosition(Vector3f position);
-    void setTarget(Vector3f target);
-    void setAspect(float aspect);          // call on window resize
-    void setFov(float fovDeg);
-
-    // ---- Produce GPU data ---------------------------------------------------
     /**
-     * Builds and returns the CameraUBO for this frame.
-     * Cheap — just two matrix multiplications.
+     * Move the camera based on a direction and how much time has passed.
+     * Multiplying by deltaTime makes movement frame-rate independent.
      */
+    void processKeyboard(CameraMovement direction, float deltaTime);
+
+    /**
+     * Rotate the camera based on mouse delta (pixels moved since last frame).
+     * @param constrainPitch  Clamp pitch to [-89, 89] to avoid gimbal lock.
+     */
+    void processMouse(float dx, float dy, bool constrainPitch = true);
+
+    // ---- Produce GPU data --------------------------------------------------
     CameraUBO getUBO() const;
 
-    // ---- Accessors ----------------------------------------------------------
+    // ---- Mutators ----------------------------------------------------------
+    void setAspect(float aspect) { m_aspect = aspect; }
+    void setFov(float fovDeg)    { m_fovDeg = fovDeg; }
+    void setPosition(Vector3f p) { m_position = p;    }
+
+    // ---- Accessors ---------------------------------------------------------
     Vector3f getPosition() const { return m_position; }
-    Vector3f getTarget()   const { return m_target;   }
+    Vector3f getFront()    const { return m_front;    }
+    float    getFov()      const { return m_fovDeg;   }
 
 private:
+    // World-space state
     Vector3f m_position;
-    Vector3f m_target;
-    Vector3f m_up;
-    float    m_fovDeg;
-    float    m_aspect;
-    float    m_nearPlane;
-    float    m_farPlane;
+    Vector3f m_worldUp;
+
+    // Euler angles (degrees)
+    float m_yaw;
+    float m_pitch;
+
+    // Derived vectors -- rebuilt by updateVectors() after any angle change
+    Vector3f m_front = { 0.0f, 0.0f, -1.0f };
+    Vector3f m_right = { 1.0f, 0.0f,  0.0f };
+    Vector3f m_up    = { 0.0f, 1.0f,  0.0f };
+
+    // Projection parameters
+    float m_fovDeg;
+    float m_aspect;
+    float m_nearPlane;
+    float m_farPlane;
+
+    // Input sensitivity
+    float m_moveSpeed;
+    float m_sensitivity;
+
+    // Recomputes m_front, m_right, m_up from m_yaw and m_pitch.
+    void updateVectors();
 
 };
 
