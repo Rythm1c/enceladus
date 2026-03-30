@@ -103,10 +103,11 @@ void Renderer::bindPipeline(const Pipeline &pipeline)
     vkCmdBindPipeline(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getHandle());
 }
 
-void Renderer::bindDescriptors(const CameraUBO &ubo, VkPipelineLayout layout)
+void Renderer::bindDescriptors(const CameraUBO &camera, const LightUBO &light, VkPipelineLayout layout)
 {
     // 1. Write fresh camera matrices into the UBO buffer for this frame.
-    m_descriptor.update(m_currentFrame, ubo);
+    m_descriptor.updateCamera(m_currentFrame, camera);
+    m_descriptor.updateLight (m_currentFrame, light);
 
     // 2. Bind the descriptor set so the shader can read the UBO.
     //
@@ -207,7 +208,7 @@ void Renderer::createFramebuffers(VkRenderPass renderPass, VkExtent2D extent, co
 
 void Renderer::createCommandPool(uint32_t graphicsQueueFamilyIndex)
 {
-     VkCommandPoolCreateInfo poolInfo{};
+    VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolInfo.queueFamilyIndex = graphicsQueueFamilyIndex;

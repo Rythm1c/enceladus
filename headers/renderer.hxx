@@ -23,7 +23,6 @@ struct RendererConfig
 
 };
 
-
 class Renderer
 {
 private:
@@ -78,7 +77,7 @@ public:
      * @param ubo    Fresh camera data produced by Camera::getUBO().
      * @param layout The pipeline layout (needed by vkCmdBindDescriptorSets).
      */
-    void bindDescriptors(const struct CameraUBO &ubo, VkPipelineLayout layout);
+    void bindDescriptors(const struct CameraUBO &ubo, const struct LightUBO &light, VkPipelineLayout layout);
 
     // Records draw commands for a shape (binds VBO, pushes constants, draws).
     void drawShape(const Shape &shape, const Pipeline &pipeline);

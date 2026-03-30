@@ -2,6 +2,7 @@
 #include "../headers/core.hxx"
 
 #include <stdexcept>
+#include <array>
 
 Descriptor::Descriptor(Core &core, uint32_t framesInFlight)
     : m_core(core),
@@ -31,25 +32,31 @@ Descriptor::~Descriptor()
 
 void Descriptor::createLayout()
 {
-    /**
-     * A VkDescriptorSetLayoutBinding describes one "slot" in the shader.
-     *
-     * binding = 0           → matches `layout(binding = 0)` in the GLSL
-     * descriptorType        → UNIFORM_BUFFER because it's a UBO
-     * descriptorCount = 1   → one UBO (not an array)
-     * stageFlags            → only the vertex shader needs view/proj
-     */
-    VkDescriptorSetLayoutBinding uboBinding{};
-    uboBinding.binding            = 0;
-    uboBinding.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboBinding.descriptorCount    = 1;
-    uboBinding.stageFlags         = VK_SHADER_STAGE_VERTEX_BIT;
-    uboBinding.pImmutableSamplers = nullptr; // only used for texture samplers
+    // Binding 0 -- CameraUBO (vertex stage only, view/proj not needed in frag)
+    VkDescriptorSetLayoutBinding cameraBinding{};
+    cameraBinding.binding            = 0;
+    cameraBinding.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    cameraBinding.descriptorCount    = 1;
+    cameraBinding.stageFlags         = VK_SHADER_STAGE_VERTEX_BIT;
+    cameraBinding.pImmutableSamplers = nullptr;
+
+    // Binding 1 -- LightUBO (fragment stage -- lighting is computed per fragment)
+    // Also include vertex bit in case we later need light direction for
+    // vertex-level effects like shadow map projection.
+    VkDescriptorSetLayoutBinding lightBinding{};
+    lightBinding.binding            = 1;
+    lightBinding.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    lightBinding.descriptorCount    = 1;
+    lightBinding.stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT
+                                    | VK_SHADER_STAGE_VERTEX_BIT;
+    lightBinding.pImmutableSamplers = nullptr;
+
+    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {cameraBinding, lightBinding};
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings    = &uboBinding;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.pBindings    = bindings.data();
 
     if (vkCreateDescriptorSetLayout(m_core.getDevice(), &layoutInfo, nullptr, &m_layout) != VK_SUCCESS)
         throw std::runtime_error("Descriptor: vkCreateDescriptorSetLayout failed!");
@@ -66,14 +73,16 @@ void Descriptor::createPool()
      * maxSets is the maximum number of VkDescriptorSets that can be allocated
      * from this pool in total — also framesInFlight here.
      */
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = m_framesInFlight;
+    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    poolSizes[0].type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[0].descriptorCount = m_framesInFlight; // camera buffers
+    poolSizes[1].type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[1].descriptorCount = m_framesInFlight; // light buffers
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes    = &poolSize;
+    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    poolInfo.pPoolSizes    = poolSizes.data();
     poolInfo.maxSets       = m_framesInFlight;
 
     if (vkCreateDescriptorPool(m_core.getDevice(), &poolInfo, nullptr, &m_pool) != VK_SUCCESS)
@@ -100,22 +109,25 @@ void Descriptor::createSetsAndBuffers()
 
     // Create one UBO buffer per frame and immediately point the descriptor
     // set at it.  The buffer contents are updated each frame via update().
-    m_uboBuffers.reserve(m_framesInFlight);
+    m_cameraBuffers.reserve(m_framesInFlight);
+    m_lightBuffers.reserve(m_framesInFlight);    
     for (uint32_t i = 0; i < m_framesInFlight; ++i)
     {
-        // Emplace constructs Buffer in-place (Buffer is non-copyable)
-        m_uboBuffers.emplace_back(m_core);
-        m_uboBuffers[i].create(
+        // Camera buffer
+        m_cameraBuffers.emplace_back(m_core);
+        m_cameraBuffers[i].create(
             sizeof(CameraUBO),
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            // HOST_VISIBLE  → CPU can write to it via vkMapMemory
-            // HOST_COHERENT → writes are immediately visible to the GPU,
-            //                 no explicit flush needed
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        m_cameraBuffers[i].mapPersistent();
 
-        // Keep the buffer persistently mapped — avoids map/unmap every frame
-        m_uboBuffers[i].mapPersistent();
+        // Light buffer
+        m_lightBuffers.emplace_back(m_core);
+        m_lightBuffers[i].create(
+            sizeof(LightUBO),
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        m_lightBuffers[i].mapPersistent();
 
 
         /**
@@ -130,21 +142,37 @@ void Descriptor::createSetsAndBuffers()
          *   dstArrayElement → 0 (not an array)
          *   descriptorType  → must match the layout binding
          */
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = m_uboBuffers[i].get();
-        bufferInfo.offset = 0;
-        bufferInfo.range  = sizeof(CameraUBO);
+        VkDescriptorBufferInfo cameraInfo{};
+        cameraInfo.buffer = m_cameraBuffers[i].get();
+        cameraInfo.offset = 0;
+        cameraInfo.range  = sizeof(CameraUBO);
 
-        VkWriteDescriptorSet write{};
-        write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet          = m_sets[i];
-        write.dstBinding      = 0;
-        write.dstArrayElement = 0;
-        write.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.descriptorCount = 1;
-        write.pBufferInfo     = &bufferInfo;
+        VkDescriptorBufferInfo lightInfo{};
+        lightInfo.buffer = m_lightBuffers[i].get();
+        lightInfo.offset = 0;
+        lightInfo.range  = sizeof(LightUBO);
 
-        vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+        std::array<VkWriteDescriptorSet, 2> writes{};
+
+        writes[0].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writes[0].dstSet          = m_sets[i];
+        writes[0].dstBinding      = 0;
+        writes[0].dstArrayElement = 0;
+        writes[0].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writes[0].descriptorCount = 1;
+        writes[0].pBufferInfo     = &cameraInfo;
+
+        writes[1].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writes[1].dstSet          = m_sets[i];
+        writes[1].dstBinding      = 1;
+        writes[1].dstArrayElement = 0;
+        writes[1].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writes[1].descriptorCount = 1;
+        writes[1].pBufferInfo     = &lightInfo;
+
+        vkUpdateDescriptorSets(device,
+            static_cast<uint32_t>(writes.size()), writes.data(),
+            0, nullptr);
     }
 }
 
@@ -152,10 +180,12 @@ void Descriptor::createSetsAndBuffers()
 // Per-frame update
 // =============================================================================
 
-void Descriptor::update(uint32_t frameIndex, const CameraUBO &ubo)
+void Descriptor::updateCamera(uint32_t frameIndex, const CameraUBO &camera)
 {
-    // The buffer is persistently mapped so this is just a memcpy —
-    // no Vulkan calls needed, and HOST_COHERENT means no flush required.
-    m_uboBuffers[frameIndex].uploadData(
-        std::vector<CameraUBO>{ubo});
+    m_cameraBuffers[frameIndex].uploadData(std::vector<CameraUBO>{camera});
+}
+
+void Descriptor::updateLight(uint32_t frameIndex, const LightUBO &light)
+{
+    m_lightBuffers[frameIndex].uploadData(std::vector<LightUBO>{light});
 }

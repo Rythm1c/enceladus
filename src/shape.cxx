@@ -212,7 +212,8 @@ Cube::Cube(Core &core, float size, Vector3f color)
 Icosphere::Icosphere(Core &core, float radius, int subdivisions, Vector3f color)
     : Shape(core), m_radius(radius), m_subdivisions(subdivisions), m_color(color)
 {}
-
+// TODO: fix this later 
+// claude fucked it up 
 void Icosphere::buildGeometry()
 {
     // Start with a regular icosahedron.
@@ -318,10 +319,10 @@ void Plane::buildGeometry()
 
     // 4 corners of a flat XZ quad, Y = 0
     m_vertices = {
-        {{-s, 0.0f, -s}, normal, {0.0f, 0.0f}, m_color},
-        {{ s, 0.0f, -s}, normal, {   t, 0.0f}, m_color},
-        {{ s, 0.0f,  s}, normal, {   t,    t}, m_color},
-        {{-s, 0.0f,  s}, normal, {0.0f,    t}, m_color},
+        {{-s, 0.0f,  s}, normal, {0.0f, 0.0f}, m_color},
+        {{-s, 0.0f, -s}, normal, {   t, 0.0f}, m_color},
+        {{ s, 0.0f, -s}, normal, {   t,    t}, m_color},
+        {{ s, 0.0f,  s}, normal, {0.0f,    t}, m_color},
     };
-    m_indices = {0, 1, 2, 0, 2, 3};
+    m_indices = {0, 2, 1, 0, 3, 2};
 }

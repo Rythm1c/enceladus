@@ -8,6 +8,8 @@
 class Core;
 class Shader;
 
+/// @brief set topology to VK_PRIMITIVE_TOPOLOGY_LINE_LIST 
+/// when rendering in wireframe mode( wireframe = ture)
 struct PipelineConfig
 {
     Core                                          &core;
@@ -17,7 +19,7 @@ struct PipelineConfig
     Shader                                        *fragShader            = nullptr;
     VkPrimitiveTopology                            topology              = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     VkDescriptorSetLayout                          descriptorSetLayout   = VK_NULL_HANDLE;
-
+    bool                                           wireframe             = false;
     std::vector<VkVertexInputBindingDescription>   bindingDescriptions;
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
     std::vector<VkPushConstantRange>               pushConstantRanges;

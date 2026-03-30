@@ -28,7 +28,11 @@ public:
      * Writes new camera data into the UBO buffer for @p frameIndex.
      * Call this every frame before binding the descriptor set.
      */
-    void update(uint32_t frameIndex, const CameraUBO &ubo);
+    // Update camera UBO for the given frame (call before binding)
+    void updateCamera(uint32_t frameIndex, const CameraUBO &camera);
+
+    // Update light UBO for the given frame (call before binding)
+    void updateLight(uint32_t frameIndex, const LightUBO &light);
 
 private:
 
@@ -38,7 +42,9 @@ private:
     VkDescriptorSetLayout   m_layout = VK_NULL_HANDLE;
     VkDescriptorPool        m_pool   = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> m_sets;       // one per frame
-    std::vector<Buffer>          m_uboBuffers; // one per frame
+    // Two buffers per frame -- one for camera, one for light
+    std::vector<Buffer>          m_cameraBuffers;
+    std::vector<Buffer>          m_lightBuffers;
 
     void createLayout();
     void createPool();

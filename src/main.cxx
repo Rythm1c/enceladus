@@ -54,7 +54,6 @@ int main(int argc, char *argv[])
         Shader vertShader(*core, "build/shaders/shader.vert.spv");
         Shader fragShader(*core, "build/shaders/shader.frag.spv");
 
-        // Push constants: a single vec2 offset pushed in the vertex stage.
         VkPushConstantRange pushRange{};
         pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         pushRange.offset     = 0;
@@ -77,6 +76,10 @@ int main(int argc, char *argv[])
         };
         auto pipeline = std::make_unique<Pipeline>(pipelineConfig);
 
+        pipelineConfig.wireframe = true;
+        pipelineConfig.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+        auto wireframePipeline = std::make_unique<Pipeline>(pipelineConfig);
+
         // ---- Renderer -------------------------------------------------------
         RendererConfig rendererConfig{
             .core                = *core,
@@ -97,6 +100,12 @@ int main(int argc, char *argv[])
             45.0f,
             static_cast<float>(window_width) / static_cast<float>(window_height)
         );
+        // ---- Light ----------------------------------------------------------
+        // Defined once -- you can animate this in the loop if you want
+        LightUBO light{};
+        light.direction = { 0.6f, -1.0f, 0.4f, 0.0f }; // angled sun
+        light.color     = { 1.0f,  0.95f, 0.85f, 1.0f }; // warm white
+        light.ambient   = { 0.1f,  0.1f,  0.15f, 0.0f }; // cool ambient
 
         /* Triangle triangle(*core);
         triangle.upload();
@@ -107,9 +116,13 @@ int main(int argc, char *argv[])
         cube.upload();
         cube.setPosition({ 1.5f, 0.0f, 0.0f});
 
-        Icosphere sphere(*core, 1.0, 5);
+        Icosphere sphere(*core, 1.0, 0);
         sphere.upload();
         sphere.setPosition({-1.5, 0.0f, 0.0f});
+
+        Plane floor(*core, 10.0f, {0.35f, 0.4f, 0.35f}, 5.0f);
+        floor.upload();
+        floor.setPosition({0.0f, -1.5f, 0.0f});
 
         // ---- Timing ---------------------------------------------------------
         uint64_t lastTicks  = SDL_GetTicks64();
@@ -196,11 +209,13 @@ int main(int argc, char *argv[])
 
                 renderer->bindPipeline(*pipeline);
 
-                renderer->bindDescriptors(camera.getUBO(), pipeline->getLayout());
-
+                renderer->bindDescriptors(camera.getUBO(), light, pipeline->getLayout());
                 //renderer->drawShape(triangle, *pipeline);
                 renderer->drawShape(cube,     *pipeline);
-                renderer->drawShape(sphere,   *pipeline);
+                renderer->drawShape(floor,    *pipeline);
+
+                renderer->bindPipeline(*wireframePipeline);
+                renderer->drawShape(sphere, *wireframePipeline);
 
                 renderer->endRecording();
                 renderer->presentFrame(swapchain->getHandle(), frameIndex);
