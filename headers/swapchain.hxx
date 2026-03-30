@@ -6,6 +6,8 @@
 #include <memory>
 #include <SDL2/SDL.h>
 
+#include "texture.hxx"
+
 class Core;
 
 class Swapchain
@@ -17,13 +19,13 @@ private:
     VkFormat                     m_imageFormat = VK_FORMAT_UNDEFINED;
     std::vector<VkImage>         m_images;
     std::vector<VkImageView>     m_imageViews;
-    std::unique_ptr<DepthBuffer> m_depthBuffer;
+    std::unique_ptr<Texture>     m_depthBuffer;
 
     void createSwapchain(SDL_Window *window);
     void createImageViews();
     void createDepthBuffer();
 
-
+    VkFormat findDepthFormat();
 public:
     explicit Swapchain(Core &core, SDL_Window* window);
 

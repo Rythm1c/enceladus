@@ -2,6 +2,8 @@
 #include "../headers/utils.hxx"
 #include "../headers/core.hxx"
 
+#include <array>
+
 Swapchain::Swapchain(Core &core, SDL_Window *window)
     : m_core(core)
 {
@@ -129,6 +131,42 @@ void Swapchain::createImageViews()
 }
 void Swapchain::createDepthBuffer()
 {
-    m_depthBuffer = std::make_unique<DepthBuffer>(m_core, m_extent);
+    VkFormat depthFormat = findDepthFormat();
+
+    TextureConfig config{};
+    config.extent     = m_extent;
+    config.format     = depthFormat;
+    config.usage      = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    config.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    config.tiling     = VK_IMAGE_TILING_OPTIMAL;
+    config.memoryProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+    m_depthBuffer = std::make_unique<Texture>(m_core, config);
     std::cout << "Depth buffer created\n";
+}
+
+VkFormat Swapchain::findDepthFormat()
+{
+    // Candidates in preference order:
+    //   D32_SFLOAT          — 32-bit float depth, no stencil (best precision, widely supported)
+    //   D32_SFLOAT_S8_UINT  — 32-bit float depth + 8-bit stencil
+    //   D24_UNORM_S8_UINT   — 24-bit depth + 8-bit stencil (common on older hardware)
+    constexpr std::array<VkFormat, 3> candidates = {
+        VK_FORMAT_D32_SFLOAT,
+        VK_FORMAT_D32_SFLOAT_S8_UINT,
+        VK_FORMAT_D24_UNORM_S8_UINT,
+    };
+
+    for (VkFormat format : candidates)
+    {
+        VkFormatProperties props{};
+        vkGetPhysicalDeviceFormatProperties(m_core.getPhysicaldevice(), format, &props);
+
+        // OPTIMAL_TILING_FEATURES must include DEPTH_STENCIL_ATTACHMENT for
+        // the format to be usable as a depth attachment with OPTIMAL tiling.
+        if (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+            return format;
+    }
+
+    throw std::runtime_error("DepthBuffer: no supported depth format found!");
 }
