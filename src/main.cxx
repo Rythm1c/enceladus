@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 
         auto core       = std::make_unique<Core>(window);
         auto swapchain  = std::make_unique<Swapchain>(*core, window);
-        auto renderPass = std::make_unique<RenderPass>(*core, swapchain->getFormat());
+        auto renderPass = std::make_unique<RenderPass>(*core, swapchain->getFormat(), swapchain->getDepthFormat());
 
         // ---- Pipeline -------------------------------------------------------
         // Shaders are RAII — destroyed when they go out of scope after pipeline creation.
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
         pushRange.offset     = 0;
         pushRange.size       = sizeof(ModelPushConstants);
 
-        auto attribDescs = Vertex::getAttributeDescriptions();
+        auto attribDescs = Vertex3D::getAttributeDescriptions();
 
         auto descriptor = std::make_unique<Descriptor>(*core, MAX_FRAMES_IN_FLIGHT);
 
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
             .vertShader            = &vertShader,
             .fragShader            = &fragShader,
             .descriptorSetLayout   = descriptor->getLayout(),
-            .bindingDescriptions   = {Vertex::getBindingDescription()},
+            .bindingDescriptions   = {Vertex3D::getBindingDescription()},
             .attributeDescriptions = {attribDescs.begin(), attribDescs.end()},
             .pushConstantRanges    = {pushRange},
         };
@@ -83,19 +83,19 @@ int main(int argc, char *argv[])
             .renderPass          = renderPass->getHandle(),
             .swapChainExtent     = swapchain->getExtent(),
             .swapChainImageViews = swapchain->getImageViews(),
+            .depthImageView      = swapchain->getDepthView(),
             .descriptor          = *descriptor,
         };
         auto renderer = std::make_unique<Renderer>(rendererConfig);
 
         // ---- Camera ---------------------------------------------------------
         Camera camera(
-            Vector3f{ 0.0f,  0.0f, 3.0f},   // position: 3 units back
-            Vector3f{ 0.0f,  0.0f, 1.0f},   // target direction: towards -Z
-            Vector3f{ 0.0f, -1.0f, 0.0f},   // up:       Y-up (Vulkan corrected)
+            { 0.0f,  0.0f, 3.0f},   // position: 3 units back
+            -90.0f,                 // yaw: looking toward -Z
+            0.0f,                   // pitch: level
+            { 0.0f, 1.0f,  0.0f},   // world up
             45.0f,
-            static_cast<float>(window_width) / static_cast<float>(window_height),
-            0.1f,   // near plane
-            100.0f  // far plane
+            static_cast<float>(window_width) / static_cast<float>(window_height)
         );
 
         Triangle triangle(*core);
@@ -103,6 +103,14 @@ int main(int argc, char *argv[])
         triangle.setScale({1.5f, 1.5f, 1.0f});
         triangle.setRotation(360.0f, {0.0f, 0.0f, 1.0f});
         //triangle.setRotation(180, {0.0, 1.0, 0.0});
+
+        Cube cube(*core);
+        cube.upload();
+        cube.setPosition({ 1.5f, 0.0f, 0.0f});
+
+        // ---- Timing ---------------------------------------------------------
+        uint64_t lastTicks  = SDL_GetTicks64();
+        float    deltaTime  = 0.0f;
 
         // Main loop
         bool running = true;
@@ -119,12 +127,43 @@ int main(int argc, char *argv[])
                     running = false;
                     break;
                 case SDL_KEYDOWN:
-                    if (event.key.keysym.sym == SDLK_ESCAPE)
+                    switch (event.key.keysym.sym)
                     {
+                    case SDLK_ESCAPE:
                         running = false;
+                        break;
+                    // Toggle mouse capture with TAB
+                    case SDLK_TAB:
+                    {
+                        SDL_bool current = SDL_GetRelativeMouseMode();
+                        SDL_SetRelativeMouseMode(current ? SDL_FALSE : SDL_TRUE);
+                        break;
+                    }
+                    default: break;
                     }
                     break;
+                case SDL_MOUSEMOTION:
+                    // SDL_RELATIVEMOTION gives pixel deltas -- directly drive yaw/pitch
+                    camera.processMouse(
+                        static_cast<float>(event.motion.xrel),
+                        static_cast<float>(event.motion.yrel));
+                    break;
+
+                default: break;
                 }
+            }
+            // ---- Continuous keyboard movement -------------------------------
+            // SDL_GetKeyboardState returns a snapshot of the current key state,
+            // which handles held keys correctly (unlike SDL_KEYDOWN events which
+            // only fire once on press).
+            {
+                const Uint8 *keys = SDL_GetKeyboardState(nullptr);
+                if (keys[SDL_SCANCODE_W]) camera.processKeyboard(CameraMovement::Forward,  deltaTime);
+                if (keys[SDL_SCANCODE_S]) camera.processKeyboard(CameraMovement::Backward, deltaTime);
+                if (keys[SDL_SCANCODE_A]) camera.processKeyboard(CameraMovement::Left,     deltaTime);
+                if (keys[SDL_SCANCODE_D]) camera.processKeyboard(CameraMovement::Right,    deltaTime);
+                if (keys[SDL_SCANCODE_E]) camera.processKeyboard(CameraMovement::Up,       deltaTime);
+                if (keys[SDL_SCANCODE_Q]) camera.processKeyboard(CameraMovement::Down,     deltaTime);
             }
 
             { // Render a frame
@@ -144,6 +183,7 @@ int main(int argc, char *argv[])
                 renderer->bindDescriptors(camera.getUBO(), pipeline->getLayout());
 
                 renderer->drawShape(triangle, *pipeline);
+                renderer->drawShape(cube,     *pipeline);
 
                 renderer->endRecording();
                 renderer->presentFrame(swapchain->getHandle(), frameIndex);
@@ -152,7 +192,6 @@ int main(int argc, char *argv[])
         }
 
         vkDeviceWaitIdle(core->getDevice());
-
 
         SDL_DestroyWindow(window);
         SDL_Quit();
