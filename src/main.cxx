@@ -4,16 +4,17 @@
 #include <iostream>
 #include <memory>
 
-#include "../headers/core.hxx"
-#include "../headers/renderpass.hxx"
-#include "../headers/renderer.hxx"
-#include "../headers/descriptor.hxx"
-#include "../headers/pipeline.hxx"
-#include "../headers/swapchain.hxx"
-#include "../headers/vertex.hxx"
+#include "../renderer/headers/core.hxx"
+#include "../renderer/headers/renderpass.hxx"
+#include "../renderer/headers/renderer.hxx"
+#include "../renderer/headers/descriptor.hxx"
+#include "../renderer/headers/pipeline.hxx"
+#include "../renderer/headers/swapchain.hxx"
+#include "../renderer/headers/vertex.hxx"
 #include "../headers/shadowmap.hxx"
-#include "../headers/shape.hxx"
-#include "../headers/camera.hxx"
+
+#include "../scene/headers/shape.hxx"
+#include "../scene/headers/camera.hxx"
 
 int main(int argc, char *argv[])
 {
@@ -62,7 +63,7 @@ int main(int argc, char *argv[])
         VkPushConstantRange pushRange{};
         pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         pushRange.offset     = 0;
-        pushRange.size       = sizeof(ModelPushConstants);
+        pushRange.size       = sizeof(Mat4x4);
 
         auto attribDescs = Vertex3D::getAttributeDescriptions();
 
@@ -217,15 +218,15 @@ int main(int argc, char *argv[])
                 {// ---- shadow render pass ------------------------------------
                     shadowMap->beginRenderpass(renderer->getCommandBuffer());
 
-                    shadowMap->drawShapeShadow(
+                    shadowMap->drawShadow(
                         renderer->getCommandBuffer(),
-                        cube,
+                        cube.getDrawData(),
                         light.lightSpaceMatrix
                     );
                     
-                    shadowMap->drawShapeShadow(
+                    shadowMap->drawShadow(
                         renderer->getCommandBuffer(),
-                        sphere,
+                        sphere.getDrawData(),
                         light.lightSpaceMatrix
                     );
 
@@ -245,11 +246,11 @@ int main(int argc, char *argv[])
                     renderer->bindDescriptors(camera.getUBO(), light, pipeline->getLayout());
                     // render objects normally(filled/solid)
                     //renderer->drawShape(triangle, *pipeline);
-                    renderer->drawShape(cube,     *pipeline);
-                    renderer->drawShape(floor,    *pipeline);
+                    renderer->draw(cube.getDrawData(),     *pipeline);
+                    renderer->draw(floor.getDrawData(),    *pipeline);
 
                     //renderer->bindPipeline(*wireframePipeline);
-                    renderer->drawShape(sphere, *pipeline);
+                    renderer->draw(sphere.getDrawData(),   *pipeline);
 
                     renderer->endRenderPass();
                 }

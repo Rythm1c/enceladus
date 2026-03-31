@@ -18,7 +18,7 @@ A cross-platform C++ project for developing with Vulkan and SDL2 using CMake.
 - **Indexed Drawing**: Optimized rendering using vertex and index buffers
 - **Lighting System**: Directional lighting with ambient and diffuse components
 
-![Sample Render](samples/priview.png)
+![Sample Render](samples/preview.png)
 
 ## Project Setup from Scratch
 

@@ -27,4 +27,8 @@ find_package(SDL2 REQUIRED)
 # exist when src/CMakeLists.txt calls target_link_libraries.
 # ---------------------------------------------------------------------------
 add_subdirectory(external)
+add_subdirectory(math)
+add_subdirectory(renderer)
+add_subdirectory(physics)
+add_subdirectory(scene)
 add_subdirectory(src)

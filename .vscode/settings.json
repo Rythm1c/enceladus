@@ -25,5 +25,12 @@
         }
     },
     "terminal.integrated.defaultProfile.windows": "MSYS2 UCRT64",
-    "C_Cpp.default.compilerPath": "C:/msys64/ucrt64/bin/g++.exe"
+    "C_Cpp.default.compilerPath": "C:/msys64/ucrt64/bin/g++.exe",
+    "python-envs.pythonProjects": [
+        {
+            "path": "math",
+            "envManager": "ms-python.python:venv",
+            "packageManager": "ms-python.python:pip"
+        }
+    ]
 }
