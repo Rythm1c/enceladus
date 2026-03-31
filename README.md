@@ -2,6 +2,24 @@
 
 A cross-platform C++ project for developing with Vulkan and SDL2 using CMake.
 
+## Features
+
+- **Vulkan Graphics Rendering**: High-performance 3D graphics using Vulkan API
+- **SDL2 Windowing**: Cross-platform window management and input handling
+- **3D Camera System**: FPS-style camera with WASD movement, mouse look, and vertical controls (E/Q)
+- **Renderable Shapes**: Triangle and Cube primitives with customizable colors
+- **Per-Face Cube Coloring**: Each face of the cube has a distinct color for visual clarity
+- **Depth Testing**: Proper 3D rendering with depth buffer and backface culling
+- **Shadow Mapping**: Real-time shadows with Percentage Closer Filtering (PCF) for soft shadow edges
+- **Shader Pipeline**: Custom vertex and fragment shaders for rendering
+- **Matrix Transformations**: Model-view-projection matrices for 3D transformations
+- **Push Constants**: Efficient per-object data passing to shaders
+- **Descriptor Sets**: Camera uniform buffers for view and projection matrices
+- **Indexed Drawing**: Optimized rendering using vertex and index buffers
+- **Lighting System**: Directional lighting with ambient and diffuse components
+
+![Sample Render](samples/priview.png)
+
 ## Project Setup from Scratch
 
 ### Prerequisites by Platform
@@ -197,9 +215,17 @@ cmake --build build
 ---
 
 
-## Next Steps
+## Contributing
 
-- Implement Vulkan instance creation and device selection
-- Add rendering pipeline and frame rendering
-- Implement input handling and window management improvements
-- Add resource management (textures, models, shaders)
+This project is a learning exercise for Vulkan and C++ graphics programming. Physics integration is planned for upcoming releases. Feel free to fork and experiment with additional features such as:
+
+- Texture mapping
+- Advanced lighting and materials
+- More complex geometries
+- Animation systems
+- GUI integration with ImGui
+- Performance optimizations
+
+## License
+
+This project is open source and available under the MIT License.
