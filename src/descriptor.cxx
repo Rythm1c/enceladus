@@ -1,12 +1,14 @@
 #include "../headers/descriptor.hxx"
+#include "../headers/shadowmap.hxx"
 #include "../headers/core.hxx"
 
 #include <stdexcept>
 #include <array>
 
-Descriptor::Descriptor(Core &core, uint32_t framesInFlight)
+Descriptor::Descriptor(Core &core, uint32_t framesInFlight, const ShadowMap &shadowMap)
     : m_core(core),
-      m_framesInFlight(framesInFlight)
+      m_framesInFlight(framesInFlight),
+      m_shadowMap(shadowMap)
 {
     // Order matters: layout → pool → sets+buffers
     createLayout();
@@ -51,7 +53,16 @@ void Descriptor::createLayout()
                                     | VK_SHADER_STAGE_VERTEX_BIT;
     lightBinding.pImmutableSamplers = nullptr;
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {cameraBinding, lightBinding};
+    // binding 2 -- shadow map (combined image sampler)
+    // COMBINED_IMAGE_SAMPLER bundles the VkImageView and VkSampler into one
+    // binding. This is the standard way to expose a texture to a shader.
+    VkDescriptorSetLayoutBinding shadowBinding{};
+    shadowBinding.binding         = 2;
+    shadowBinding.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    shadowBinding.descriptorCount = 1;
+    shadowBinding.stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::array<VkDescriptorSetLayoutBinding, 3> bindings = {cameraBinding, lightBinding, shadowBinding};
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -75,8 +86,8 @@ void Descriptor::createPool()
      */
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = m_framesInFlight; // camera buffers
-    poolSizes[1].type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[0].descriptorCount = m_framesInFlight * 2; // camera + light
+    poolSizes[1].type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     poolSizes[1].descriptorCount = m_framesInFlight; // light buffers
 
     VkDescriptorPoolCreateInfo poolInfo{};
@@ -152,7 +163,12 @@ void Descriptor::createSetsAndBuffers()
         lightInfo.offset = 0;
         lightInfo.range  = sizeof(LightUBO);
 
-        std::array<VkWriteDescriptorSet, 2> writes{};
+        VkDescriptorImageInfo shadowInfo{};
+        shadowInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        shadowInfo.imageView   = m_shadowMap.getView();
+        shadowInfo.sampler     = m_shadowMap.getSampler();
+
+        std::array<VkWriteDescriptorSet, 3> writes{};
 
         writes[0].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writes[0].dstSet          = m_sets[i];
@@ -169,6 +185,13 @@ void Descriptor::createSetsAndBuffers()
         writes[1].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writes[1].descriptorCount = 1;
         writes[1].pBufferInfo     = &lightInfo;
+
+        writes[2].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writes[2].dstSet          = m_sets[i];
+        writes[2].dstBinding      = 2;
+        writes[2].descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writes[2].descriptorCount = 1;
+        writes[2].pImageInfo      = &shadowInfo;
 
         vkUpdateDescriptorSets(device,
             static_cast<uint32_t>(writes.size()), writes.data(),

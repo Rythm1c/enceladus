@@ -6,11 +6,12 @@
 #include "ubo.hxx"
 
 class Core;
+class ShadowMap;
 
 class Descriptor
 {
 public:
-    explicit Descriptor(Core &core, uint32_t framesInFlight);
+    explicit Descriptor(Core &core, uint32_t framesInFlight, const ShadowMap &shadowMap);
 
     Descriptor(const Descriptor &)            = delete;
     Descriptor &operator=(const Descriptor &) = delete;
@@ -38,6 +39,7 @@ private:
 
     Core                   &m_core;
     uint32_t                m_framesInFlight;
+    const ShadowMap        &m_shadowMap;
 
     VkDescriptorSetLayout   m_layout = VK_NULL_HANDLE;
     VkDescriptorPool        m_pool   = VK_NULL_HANDLE;

@@ -11,6 +11,7 @@
 #include "../headers/pipeline.hxx"
 #include "../headers/swapchain.hxx"
 #include "../headers/vertex.hxx"
+#include "../headers/shadowmap.hxx"
 #include "../headers/shape.hxx"
 #include "../headers/camera.hxx"
 
@@ -49,6 +50,10 @@ int main(int argc, char *argv[])
         auto swapchain  = std::make_unique<Swapchain>(*core, window);
         auto renderPass = std::make_unique<RenderPass>(*core, swapchain->getFormat(), swapchain->getDepthFormat());
 
+        // ---- Shadow Map -----------------------------------------------------
+
+        auto shadowMap = std::make_unique<ShadowMap>(*core);
+
         // ---- Pipeline -------------------------------------------------------
         // Shaders are RAII — destroyed when they go out of scope after pipeline creation.
         Shader vertShader(*core, "build/shaders/shader.vert.spv");
@@ -61,7 +66,7 @@ int main(int argc, char *argv[])
 
         auto attribDescs = Vertex3D::getAttributeDescriptions();
 
-        auto descriptor = std::make_unique<Descriptor>(*core, MAX_FRAMES_IN_FLIGHT);
+        auto descriptor = std::make_unique<Descriptor>(*core, MAX_FRAMES_IN_FLIGHT, *shadowMap);
 
         PipelineConfig pipelineConfig{
             .core                  = *core,
@@ -76,9 +81,9 @@ int main(int argc, char *argv[])
         };
         auto pipeline = std::make_unique<Pipeline>(pipelineConfig);
 
-        pipelineConfig.wireframe = true;
+        /* pipelineConfig.wireframe = true;
         pipelineConfig.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-        auto wireframePipeline = std::make_unique<Pipeline>(pipelineConfig);
+        auto wireframePipeline = std::make_unique<Pipeline>(pipelineConfig); */
 
         // ---- Renderer -------------------------------------------------------
         RendererConfig rendererConfig{
@@ -116,7 +121,7 @@ int main(int argc, char *argv[])
         cube.upload();
         cube.setPosition({ 1.5f, 0.0f, 0.0f});
 
-        Icosphere sphere(*core, 1.0, 0);
+        Icosphere sphere(*core, 1.0, 3);
         sphere.upload();
         sphere.setPosition({-1.5, 0.0f, 0.0f});
 
@@ -198,24 +203,56 @@ int main(int argc, char *argv[])
             { // Render a frame
                 renderer->clearColor(0.2, 0.3, 0.6);
 
+                light.lightSpaceMatrix = shadowMap->computeLightSpaceMatrix(
+                Vector3f(light.direction.x, light.direction.y, light.direction.z),
+                Vector3f(0.0),
+                15.0f);
+
                 uint32_t frameIndex = renderer->getFrame(
                     swapchain->getHandle(),
                     swapchain->getExtent());
 
-                renderer->beginRecording(
+                renderer->beginRecording();
+
+                {// ---- shadow render pass ------------------------------------
+                    shadowMap->beginRenderpass(renderer->getCommandBuffer());
+
+                    shadowMap->drawShapeShadow(
+                        renderer->getCommandBuffer(),
+                        cube,
+                        light.lightSpaceMatrix
+                    );
+                    
+                    shadowMap->drawShapeShadow(
+                        renderer->getCommandBuffer(),
+                        sphere,
+                        light.lightSpaceMatrix
+                    );
+
+                    shadowMap->endRenderpass(renderer->getCommandBuffer());
+
+                }
+
+                {// ---- main render pass --------------------------------------
+                    renderer->beginRenderPass(
                     renderPass->getHandle(),
                     frameIndex,
-                    swapchain->getExtent());
+                    swapchain->getExtent()
+                    );
 
-                renderer->bindPipeline(*pipeline);
+                    renderer->bindPipeline(*pipeline);
 
-                renderer->bindDescriptors(camera.getUBO(), light, pipeline->getLayout());
-                //renderer->drawShape(triangle, *pipeline);
-                renderer->drawShape(cube,     *pipeline);
-                renderer->drawShape(floor,    *pipeline);
+                    renderer->bindDescriptors(camera.getUBO(), light, pipeline->getLayout());
+                    // render objects normally(filled/solid)
+                    //renderer->drawShape(triangle, *pipeline);
+                    renderer->drawShape(cube,     *pipeline);
+                    renderer->drawShape(floor,    *pipeline);
 
-                renderer->bindPipeline(*wireframePipeline);
-                renderer->drawShape(sphere, *wireframePipeline);
+                    //renderer->bindPipeline(*wireframePipeline);
+                    renderer->drawShape(sphere, *pipeline);
+
+                    renderer->endRenderPass();
+                }
 
                 renderer->endRecording();
                 renderer->presentFrame(swapchain->getHandle(), frameIndex);

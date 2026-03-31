@@ -54,7 +54,7 @@ uint32_t Renderer::getFrame(VkSwapchainKHR swapchain, VkExtent2D extent)
     return imageIndex;
 }
 
-void Renderer::beginRecording(VkRenderPass renderpass, uint32_t index, VkExtent2D extent)
+void Renderer::beginRecording()
 {
     VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
     vkResetCommandBuffer(cmd, 0);
@@ -65,6 +65,11 @@ void Renderer::beginRecording(VkRenderPass renderpass, uint32_t index, VkExtent2
     if (vkBeginCommandBuffer(cmd, &beginInfo) != VK_SUCCESS)
         throw std::runtime_error("Renderer: vkBeginCommandBuffer failed!");
 
+    
+}
+void Renderer::beginRenderPass(VkRenderPass renderpass, uint32_t index, VkExtent2D extent)
+{
+    VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
     // Two clear values -- order must match attachment order in RenderPass:
     //   [0] colour  → black, fully opaque
     //   [1] depth   → 1.0 (far plane) so every real fragment passes the LESS test
@@ -103,6 +108,7 @@ void Renderer::bindPipeline(const Pipeline &pipeline)
     vkCmdBindPipeline(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getHandle());
 }
 
+
 void Renderer::bindDescriptors(const CameraUBO &camera, const LightUBO &light, VkPipelineLayout layout)
 {
     // 1. Write fresh camera matrices into the UBO buffer for this frame.
@@ -129,15 +135,29 @@ void Renderer::bindDescriptors(const CameraUBO &camera, const LightUBO &light, V
 
 void Renderer::drawShape(const Shape &shape, const Pipeline &pipeline)
 {
+    ModelPushConstants pushConstants{
+        .model = shape.getModel(),
+    };
+    vkCmdPushConstants(
+        m_commandBuffers[m_currentFrame],
+        pipeline.getLayout(),
+        VK_SHADER_STAGE_VERTEX_BIT,
+        0,
+        sizeof(ModelPushConstants),
+        &pushConstants);
+
     shape.draw(m_commandBuffers[m_currentFrame], pipeline.getLayout());
+}
+
+void Renderer::endRenderPass()
+{
+    vkCmdEndRenderPass(m_commandBuffers[m_currentFrame]);
 }
 
 void Renderer::endRecording()
 {
-    VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
-    vkCmdEndRenderPass(cmd);
 
-    if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
+    if (vkEndCommandBuffer(m_commandBuffers[m_currentFrame]) != VK_SUCCESS)
         throw std::runtime_error("Renderer: vkEndCommandBuffer failed!");
 }
 

@@ -12,24 +12,29 @@ Pipeline::Pipeline(PipelineConfig &config)
 
     VkDevice device = m_core.getDevice();
 
-    if (!config.vertShader || !config.fragShader)
+    if (!config.vertShader)
     {
-        throw std::runtime_error("Vertex and Fragment shaders must be provided!");
+        throw std::runtime_error("Vertex shaders must be provided!");
     }
 
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage  = VK_SHADER_STAGE_VERTEX_BIT;
     vertShaderStageInfo.module = config.vertShader->getHandle();
     vertShaderStageInfo.pName  = "main";
+    shaderStages.push_back(vertShaderStageInfo);
+
 
     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-    fragShaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    fragShaderStageInfo.stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = config.fragShader->getHandle();
-    fragShaderStageInfo.pName  = "main";
-
-    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+    if(!config.depthOnly && config.fragShader)
+    {
+        fragShaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragShaderStageInfo.stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragShaderStageInfo.module = config.fragShader->getHandle();
+        fragShaderStageInfo.pName  = "main";
+        shaderStages.push_back(fragShaderStageInfo);
+    }
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -77,9 +82,28 @@ Pipeline::Pipeline(PipelineConfig &config)
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode             = config.wireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth               = 1.0f;
-    rasterizer.cullMode                = config.wireframe ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-    rasterizer.depthBiasEnable         = VK_FALSE;
+    if(config.depthOnly)
+    {
+        // Cull FRONT faces during shadow pass.
+        // This ensures only back faces write to the shadow map, which eliminates
+        // "peter panning" -- the artifact where shadows appear detached from objects
+        // because the surface normal and shadow ray are nearly parallel.
+        rasterizer.cullMode  = VK_CULL_MODE_FRONT_BIT;
+        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+        // Depth bias: nudges depth values slightly to prevent shadow acne
+        // (self-shadowing noise caused by floating-point precision limits).
+        rasterizer.depthBiasEnable         = VK_TRUE;
+        rasterizer.depthBiasConstantFactor = 4.0f;  // constant offset
+        rasterizer.depthBiasSlopeFactor    = 2.5f;  // slope-dependent offset
+
+    } else
+    {
+        rasterizer.cullMode        = config.wireframe ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;
+        rasterizer.frontFace       = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        rasterizer.depthBiasEnable = VK_FALSE;
+    }
+    
 
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType                 = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -123,8 +147,8 @@ Pipeline::Pipeline(PipelineConfig &config)
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount          = 2;
-    pipelineInfo.pStages             = shaderStages;
+    pipelineInfo.stageCount          = static_cast<uint32_t>(shaderStages.size());
+    pipelineInfo.pStages             = shaderStages.data();
     pipelineInfo.pVertexInputState   = &vertexInputInfo;
     pipelineInfo.pInputAssemblyState = &inputAssembly;
     pipelineInfo.pViewportState      = &viewportState;

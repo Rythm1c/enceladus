@@ -16,10 +16,11 @@ struct PipelineConfig
     VkRenderPass                                   renderPass            = VK_NULL_HANDLE;
     VkExtent2D                                     swapChainExtent       = {0, 0};
     Shader                                        *vertShader            = nullptr;
-    Shader                                        *fragShader            = nullptr;
+    Shader                                        *fragShader            = nullptr; // may be nullptr for depthOnly
     VkPrimitiveTopology                            topology              = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     VkDescriptorSetLayout                          descriptorSetLayout   = VK_NULL_HANDLE;
     bool                                           wireframe             = false;
+    bool                                           depthOnly             = false; // mostly for shadow map pipelines
     std::vector<VkVertexInputBindingDescription>   bindingDescriptions;
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
     std::vector<VkPushConstantRange>               pushConstantRanges;

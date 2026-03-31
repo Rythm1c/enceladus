@@ -17,6 +17,7 @@ add_executable(enceladus
     renderer.cxx
     camera.cxx
     descriptor.cxx
+    shadowmap.cxx
 )
 
 target_link_libraries(enceladus

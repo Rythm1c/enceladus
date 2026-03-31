@@ -88,12 +88,14 @@ if [ -f "/c/VulkanSDK/1.4.321.1/Bin/glslc.exe" ]; then
     mkdir -p shaders
     "/c/VulkanSDK/1.4.321.1/Bin/glslc.exe" ../shaders/shader.vert -o shaders/shader.vert.spv
     "/c/VulkanSDK/1.4.321.1/Bin/glslc.exe" ../shaders/shader.frag -o shaders/shader.frag.spv
+    "/c/VulkanSDK/1.4.321.1/Bin/glslc.exe" ../shaders/shadow.vert -o shaders/shadow.vert.spv
     echo "Shaders compiled to build/shaders/"
 elif ! command --version glslc >/dev/null 2>&1; then
     echo "Compiling shaders..."
     mkdir -p shaders
     glslc ../shaders/shader.vert -o shaders/shader.vert.spv
     glslc ../shaders/shader.frag -o shaders/shader.frag.spv
+    glslc ../shaders/shadow.vert -o shaders/shadow.vert.spv
     echo "Shaders compiled to build/shaders/"
 else
     echo "glslc not found!"

@@ -56,13 +56,14 @@ public:
     void setRotation(float angleDeg, Vector3f axis);
     void setScale(Vector3f s);
 
-    Mat4x4 getModel() const { return model.toMat4x4(); }
+    // converted to column major automatically so don't call it again
+    Mat4x4 getModel() const { return m_model.toMat4x4().transpose(); }
 
 protected:
     Core                  &m_core;
     Buffer                m_vertexBuffer;
     Buffer                m_indexBuffer;
-    Transform             model;
+    Transform             m_model;
     std::vector<Vertex3D> m_vertices;  // filled by buildGeometry()
     std::vector<uint16_t> m_indices;
 

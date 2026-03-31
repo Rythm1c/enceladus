@@ -65,7 +65,9 @@ public:
     uint32_t getFrame(VkSwapchainKHR swapchain, VkExtent2D extent);
 
     // Opens the command buffer and starts the render pass.
-    void beginRecording(VkRenderPass renderPass, uint32_t imageIndex, VkExtent2D extent);
+    void beginRecording();
+
+    void beginRenderPass(VkRenderPass renderpass, uint32_t index, VkExtent2D extent);
 
     // Binds a pipeline for subsequent draw calls.
     void bindPipeline(const Pipeline &pipeline);
@@ -81,6 +83,8 @@ public:
 
     // Records draw commands for a shape (binds VBO, pushes constants, draws).
     void drawShape(const Shape &shape, const Pipeline &pipeline);
+
+    void endRenderPass();
 
     // Ends the render pass and command buffer recording.
     void endRecording();

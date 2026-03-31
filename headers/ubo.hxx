@@ -24,9 +24,11 @@ struct CameraUBO{
  */
 struct LightUBO
 {
-    Vector4f direction = { 0.5f, -1.0f, 0.5f, 0.0f }; // angled from top-right
-    Vector4f color     = { 1.0f,  1.0f, 1.0f, 1.0f }; // white, full intensity
-    Vector4f ambient   = { 0.15f, 0.15f, 0.2f, 0.0f }; // cool blue-tinted ambient
+    Vector4f direction        = { 0.5f, -1.0f, 0.5f, 0.0f }; // angled from top-right
+    Vector4f color            = { 1.0f,  1.0f, 1.0f, 1.0f }; // white, full intensity
+    Vector4f ambient          = { 0.15f, 0.15f, 0.2f, 0.0f }; // cool blue-tinted ambient
+    Mat4x4   lightSpaceMatrix = Mat4x4::identity();
+
 };
 
 #endif

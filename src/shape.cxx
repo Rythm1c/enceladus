@@ -17,7 +17,7 @@ Shape::Shape(Core &core, Vector2f position)
       m_vertexBuffer(core),
       m_indexBuffer(core) 
 {
-    model = Transform();
+    m_model = Transform();
 }
 
 void Shape::upload()
@@ -49,18 +49,6 @@ void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
 {
     assert(m_vertexBuffer.isCreated() && "Shape::draw called before upload(). Call shape.upload() after construction.");
 
-    ModelPushConstants pushConstants{
-        .model = this->getModel().transpose(),
-    };
-    // Push the 2D offset
-    vkCmdPushConstants(
-        cmd,
-        layout,
-        VK_SHADER_STAGE_VERTEX_BIT,
-        0,
-        sizeof(ModelPushConstants),
-        &pushConstants);
-
     // Bind the vertex buffer
     VkBuffer buffers[] = {m_vertexBuffer.get()};
     VkDeviceSize offsets[] = {0};
@@ -68,19 +56,9 @@ void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
 
     if(!m_indices.empty())
     {
-        vkCmdBindIndexBuffer(
-            cmd, 
-            m_indexBuffer.get(), 
-            0, 
-            VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(cmd, m_indexBuffer.get(), 0, VK_INDEX_TYPE_UINT16);
 
-        vkCmdDrawIndexed(
-            cmd, 
-            static_cast<uint32_t>(m_indices.size()), 
-            1, 
-            0, 
-            0, 
-            0);
+        vkCmdDrawIndexed(cmd, static_cast<uint32_t>(m_indices.size()), 1, 0, 0, 0);
     }
     else
     {
@@ -90,17 +68,17 @@ void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
 
 void Shape::setPosition(Vector3f translation)
 {
-    model.translation = translation;
+    m_model.translation = translation;
 }
 
 void Shape::setRotation(float angleDeg, Vector3f axis)
 {
-    model.orientation = Quat(angleDeg, axis);
+    m_model.orientation = Quat(angleDeg, axis);
 }
 
 void Shape::setScale(Vector3f s)
 {
-    model.scaling = s;
+    m_model.scaling = s;
 }
 
 // =============================================================================
