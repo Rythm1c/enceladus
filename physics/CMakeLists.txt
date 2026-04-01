@@ -14,7 +14,7 @@ target_include_directories(enceladus_physics
         headers
         ../math/headers
 )
-target_link_libraries(enceladus_scene
+target_link_libraries(enceladus_physics
     PUBLIC
         enceladus_math
 )
