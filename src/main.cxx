@@ -248,8 +248,6 @@ int main(int argc, char *argv[])
                     //renderer->drawShape(triangle, *pipeline);
                     renderer->draw(cube.getDrawData(),     *pipeline);
                     renderer->draw(floor.getDrawData(),    *pipeline);
-
-                    //renderer->bindPipeline(*wireframePipeline);
                     renderer->draw(sphere.getDrawData(),   *pipeline);
 
                     renderer->endRenderPass();

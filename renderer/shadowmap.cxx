@@ -279,5 +279,4 @@ void ShadowMap::drawShadow(VkCommandBuffer cmd, const Drawable &drawable, const 
 void ShadowMap::endRenderpass(VkCommandBuffer cmd)
 {
     vkCmdEndRenderPass(cmd);
-
 }
