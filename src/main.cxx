@@ -16,6 +16,10 @@
 #include "../scene/headers/shape.hxx"
 #include "../scene/headers/camera.hxx"
 
+#include "../physics/headers/physicsworld.hxx"
+#include "../physics/headers/collider.hxx"
+#include "../physics/headers/rigidbody.hxx"
+
 int main(int argc, char *argv[])
 {
     try
@@ -46,6 +50,43 @@ int main(int argc, char *argv[])
         }
 
         std::cout << "Window created: " << window_width << "x" << window_height << std::endl;
+
+        // ====================================================================
+        // Physics world
+        // ====================================================================
+
+        PhysicsWorld physicsWorld;
+
+        // ---- Floor (static plane) ------------------------------------------
+        RigidBody floorBody;
+        floorBody.collider  = Collider::makePlane(Vector3f(0.0f, 1.0f, 0.0f), -1.5f);
+        floorBody.makeStatic();
+        physicsWorld.addBody(&floorBody);
+
+        // ---- Sphere --------------------------------------------------------
+        RigidBody sphereBody;
+        sphereBody.position   = Vector3f(4.0f, 5.0f, 0.0f); // drop from height
+        sphereBody.collider   = Collider::makeSphere(0.6f);
+        sphereBody.restitution = 0.6f;
+        sphereBody.friction    = 0.4f;
+        sphereBody.setMass(1.0f);
+        physicsWorld.addBody(&sphereBody);
+
+        // ---- Cube (box) ----------------------------------------------------
+        // Box collisions not yet implemented -- cube renders but physics is
+        // placeholder until box vs plane/sphere detection is added.
+        RigidBody cubeBody;
+        cubeBody.position   = Vector3f(1.0f, 0.0f, -2.0f);
+        cubeBody.collider   = Collider::makeBox(Vector3f(0.5f, 0.5f, 0.5f));
+        cubeBody.restitution = 0.3f;
+        cubeBody.friction    = 0.6f;
+        cubeBody.setMass(2.0f);
+        cubeBody.makeStatic();
+        physicsWorld.addBody(&cubeBody);
+
+        // ====================================================================
+        // Vulkan setup
+        // ====================================================================
 
         auto core       = std::make_unique<Core>(window);
         auto swapchain  = std::make_unique<Swapchain>(*core, window);
@@ -120,11 +161,9 @@ int main(int argc, char *argv[])
 
         Cube cube(*core);
         cube.upload();
-        cube.setPosition({ 1.5f, 0.0f, 0.0f});
 
-        Icosphere sphere(*core, 1.0, 3);
+        Icosphere sphere(*core, 0.6, 3);
         sphere.upload();
-        sphere.setPosition({-1.5, 0.0f, 0.0f});
 
         Plane floor(*core, 10.0f, {0.35f, 0.4f, 0.35f}, 5.0f);
         floor.upload();
@@ -199,6 +238,23 @@ int main(int argc, char *argv[])
                     camera.processKeyboard(CameraMovement::Up,       deltaTime);
                 if (keys[SDL_SCANCODE_Q]) 
                     camera.processKeyboard(CameraMovement::Down,     deltaTime);
+            }
+            
+            // ----------------------------------------------------------------
+            // Physics step
+            // ----------------------------------------------------------------
+            {
+                physicsWorld.step(deltaTime);
+                // ---- Sync render shapes with physics state ---------------------
+            // getTransformMatrix() returns a transposed (column-major) matrix
+            // ready for the shader.
+            sphere.setPosition(sphereBody.position);
+            sphere.setRotation(sphereBody.orientation);
+
+            cube.setPosition(cubeBody.position);
+            cube.setRotation(cubeBody.orientation);
+
+            // floorShape is static -- no sync needed
             }
 
             { // Render a frame

@@ -68,7 +68,7 @@ struct RigidBody
      * Pass directly to shape.setTransform():
      *   shape.setTransform(body.getTransformMatrix());
      */
-    Mat4x4 getTransformMatrix() const;
+    Transform getTransform() const;
 
     /**
      * Velocity of the body at a specific world-space point

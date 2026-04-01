@@ -114,7 +114,7 @@ void PhysicsWorld::detectAndResolve()
             // Skip static-static pairs -- they can never collide meaningfully
             if (!a.hasFiniteMass() && !b.hasFiniteMass()) continue;
 
-            const CollisionManifold manifold = testCollision(a, b);
+            CollisionManifold manifold = testCollision(a, b);
             if (manifold.hasCollision)
                 resolveCollision(manifold);
         }

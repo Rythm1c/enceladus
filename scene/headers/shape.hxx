@@ -47,8 +47,10 @@ public:
 
     // ---- Transform ----------------------------------------------------------
     void setPosition(Vector3f translation);
-    void setRotation(float angleDeg, Vector3f axis);
-    void setScale(Vector3f s);
+    void setRotation(Quat rotation);
+    void setScale(Vector3f size);
+
+    void setTransform(const Transform &t);
 
     // converted to column major automatically so don't call it again
     Mat4x4 getModel() const { return m_model.toMat4x4().transpose(); }

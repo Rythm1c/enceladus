@@ -103,13 +103,13 @@ Vector3f RigidBody::velocityAtPoint(Vector3f worldPoint) const
     return linearVelocity + cross(angularVelocity, r);
 }
 
-Mat4x4 RigidBody::getTransformMatrix() const
+Transform RigidBody::getTransform() const
 {
     // Build model matrix: translate(position) * rotate(orientation)
     // No scale -- physics bodies are unit-scale (scale is baked into collider dims)
-    Mat4x4 rot   = orientation.toMat4x4();
-    Mat4x4 trans = translate(position);
-    Mat4x4 model = trans * rot;
+    Transform transform;
+    transform.translation = position;
+    transform.orientation = orientation;
 
-    return model;
+    return transform;
 }

@@ -82,15 +82,21 @@ void Shape::setPosition(Vector3f translation)
     m_model.translation = translation;
 }
 
-void Shape::setRotation(float angleDeg, Vector3f axis)
+void Shape::setRotation(Quat rotation)
 {
-    m_model.orientation = Quat(angleDeg, axis);
+    m_model.orientation = rotation;
 }
 
 void Shape::setScale(Vector3f s)
 {
     m_model.scaling = s;
 }
+
+void Shape::setTransform(const Transform &t)
+{
+    m_model = t;
+}
+
 
 // =============================================================================
 // Triangle
