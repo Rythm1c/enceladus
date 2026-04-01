@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
 
         // ---- Sphere --------------------------------------------------------
         RigidBody sphereBody;
-        sphereBody.position   = Vector3f(4.0f, 5.0f, 0.0f); // drop from height
+        sphereBody.position   = Vector3f(1.6f, 4.0f, -2.0f); // drop from height
         sphereBody.collider   = Collider::makeSphere(0.6f);
         sphereBody.restitution = 0.6f;
         sphereBody.friction    = 0.4f;
@@ -76,12 +76,12 @@ int main(int argc, char *argv[])
         // Box collisions not yet implemented -- cube renders but physics is
         // placeholder until box vs plane/sphere detection is added.
         RigidBody cubeBody;
-        cubeBody.position   = Vector3f(1.0f, 0.0f, -2.0f);
+        cubeBody.position   = Vector3f(2.0f, 2.0f, -2.0f);
         cubeBody.collider   = Collider::makeBox(Vector3f(0.5f, 0.5f, 0.5f));
         cubeBody.restitution = 0.3f;
         cubeBody.friction    = 0.6f;
         cubeBody.setMass(2.0f);
-        cubeBody.makeStatic();
+        //cubeBody.makeStatic();
         physicsWorld.addBody(&cubeBody);
 
         // ====================================================================
@@ -209,11 +209,14 @@ int main(int argc, char *argv[])
                     break;
                 case SDL_MOUSEMOTION:
                     // SDL_RELATIVEMOTION gives pixel deltas -- directly drive yaw/pitch
-                    if (event.button.button == SDL_BUTTON_LEFT)
                     {
-                        camera.processMouse(
-                            static_cast<float>(event.motion.xrel),
-                            static_cast<float>(event.motion.yrel));
+                        SDL_bool current = SDL_GetRelativeMouseMode();
+                        if (current)
+                        {
+                            camera.processMouse(
+                                static_cast<float>(event.motion.xrel),
+                                static_cast<float>(event.motion.yrel));
+                        }
                     }
                     break;
 
@@ -249,10 +252,10 @@ int main(int argc, char *argv[])
             // getTransformMatrix() returns a transposed (column-major) matrix
             // ready for the shader.
             sphere.setPosition(sphereBody.position);
-            sphere.setRotation(sphereBody.orientation);
+            sphere.setRotation(   sphereBody.orientation);
 
             cube.setPosition(cubeBody.position);
-            cube.setRotation(cubeBody.orientation);
+            cube.setRotation(   cubeBody.orientation);
 
             // floorShape is static -- no sync needed
             }

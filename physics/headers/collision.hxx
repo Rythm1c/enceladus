@@ -32,18 +32,13 @@ struct CollisionManifold
 // Each returns a CollisionManifold. Check .hasCollision before using.
 // =============================================================================
 
-/**
- * Sphere vs Sphere.
- * Both bodies must have ColliderType::Sphere colliders.
- */
-CollisionManifold testSphereSphere(RigidBody &a, RigidBody &b);
+CollisionManifold testSphereSphere(RigidBody &a,      RigidBody &b);
+CollisionManifold testBoxBox      (RigidBody &a,      RigidBody &b);
+CollisionManifold testSpherePlane (RigidBody &sphere, RigidBody &plane);
+CollisionManifold testBoxPlane    (RigidBody &box,    RigidBody &plane);
+CollisionManifold testBoxSphere   (RigidBody &box,    RigidBody &sphere);
 
-/**
- * Sphere vs infinite Plane.
- * @param sphere  Must have ColliderType::Sphere collider.
- * @param plane   Must have ColliderType::Plane  collider (always static).
- */
-CollisionManifold testSpherePlane(RigidBody &sphere, RigidBody &plane);
+
 
 /**
  * Dispatch: test any two bodies against each other.

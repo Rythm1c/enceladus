@@ -35,9 +35,11 @@ struct Quat
   Quat(float, Vector3f);
 
   float norm() const;
-  Quat unit() const;
+  Quat  unit() const;
+  
+  // conjugate() of a unit quaternion is its inverse rotation
   Quat conjugate() const;
-  Quat inverse() const;
+  Quat inverse()   const;
 
   Mat3x3 toMat3x3() const;
   Mat4x4 toMat4x4() const;
