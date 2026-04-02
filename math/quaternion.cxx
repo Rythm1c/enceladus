@@ -62,15 +62,16 @@ Quat mix(Quat from, Quat to, float t) { return (1.0 - t) * from + t * to; }
 
 Mat3x3 Quat::toMat3x3() const
 {
-
-  Vector3f _x = *this * Vector3f(1.0, 0.0, 0.0);
-  Vector3f _y = *this * Vector3f(0.0, 1.0, 0.0);
-  Vector3f _z = *this * Vector3f(0.0, 0.0, 1.0);
-
+  float x2 = std::pow(x, 2.0);
+  float y2 = std::pow(y, 2.0);
+  float z2 = std::pow(z, 2.0);
+  
+  // Use the same formula as toMat4x4() for consistency
+  // This produces a proper rotation matrix where rows are the rotated basis vectors
   return Mat3x3(
-      _x.x, _y.x, _z.x,
-      _x.y, _y.y, _z.y,
-      _x.z, _y.z, _z.z);
+      1.0 - 2.0 * (y2 + z2), 2.0 * (x * y - s * z), 2.0 * (x * z + s * y),
+      2.0 * (x * y + s * z), 1.0 - 2.0 * (x2 + z2), 2.0 * (y * z - s * x),
+      2.0 * (x * z - s * y), 2.0 * (y * z + s * x), 1.0 - 2.0 * (x2 + y2));
 }
 Mat4x4 Quat::toMat4x4() const
 {
@@ -145,7 +146,7 @@ Quat operator*(const Quat &lhs, const Quat &rhs)
 bool operator==(const Quat &left, const Quat &right)
 {
   return (
-      fabsf(left.x - right.x) <= QUAT_EPSILON &&
+      fabsf(left.x - right.x)   <= QUAT_EPSILON &&
       fabsf(left.y - right.y) <= QUAT_EPSILON &&
       fabsf(left.z - right.z) <= QUAT_EPSILON &&
       fabsf(left.s - right.s) <= QUAT_EPSILON);

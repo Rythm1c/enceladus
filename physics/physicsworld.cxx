@@ -32,7 +32,12 @@ void PhysicsWorld::step(float dt)
     if (dt <= 0.0f)     return;
 
     integrate(dt);
-    detectAndResolve();
+    const int iterations = 8;
+
+    for (int i = 0; i < iterations; ++i)
+    {
+        detectAndResolve();
+    }
     clearForces();
 }
 
@@ -45,58 +50,63 @@ void PhysicsWorld::integrate(float dt)
     for (RigidBody *body : m_bodies)
     {
         if (!body->hasFiniteMass()) continue;
+        if (body->isSleeping)       continue; // sleeping bodies skip integration
 
         // ---- Linear integration (semi-implicit Euler) ----------------------
-        //
-        // Semi-implicit differs from explicit Euler in one key way:
-        //   Explicit:      pos += oldVelocity * dt
-        //   Semi-implicit: vel += accel * dt
-        //                  pos += newVelocity * dt   <-- uses updated velocity
-        //
-        // This makes it symplectic (energy-conserving) which prevents the
-        // slow energy gain that causes explicit Euler simulations to explode.
-
-        // Gravity is a body force: F = m * g, so accel = g (mass cancels)
+        // accel = gravity + F/m
+        // velocity updated first (semi-implicit), then position uses new velocity
         Vector3f accel = m_gravity + body->forceAccum * body->invMass;
-
         body->linearVelocity += accel * dt;
-
-        // Damping: multiply velocity by damping^dt rather than subtracting,
-        // so the effect is frame-rate independent.
-        // For small dt, pow(d, dt) ≈ 1 - (1-d)*dt which is the linear approx.
-        body->linearVelocity  = body->linearVelocity  * std::pow(body->linearDamping,  dt);
-
-        body->position += body->linearVelocity * dt;
+        body->linearVelocity  = body->linearVelocity * std::pow(body->linearDamping, dt);
+        body->position        = body->position + body->linearVelocity * dt;
 
         // ---- Angular integration -------------------------------------------
-
-        // Angular acceleration = I^-1 * torque (diagonal inertia tensor)
-        Vector3f angAccel(
-            body->torqueAccum.x * body->invInertia.x,
-            body->torqueAccum.y * body->invInertia.y,
-            body->torqueAccum.z * body->invInertia.z);
-
+        // Angular acceleration = I_world^-1 * torque
+        // Uses the world-space inverse inertia tensor (full Mat3x3).
+        // This is the key improvement over the diagonal-only approach:
+        // the tensor is correctly transformed by the body's current rotation.
+        Vector3f angAccel = body->getWorldInvInertia() * body->torqueAccum;
         body->angularVelocity += angAccel * dt;
         body->angularVelocity  = body->angularVelocity * std::pow(body->angularDamping, dt);
 
-        // Integrate orientation:
-        //   dq/dt = 0.5 * omega_quat * q
-        // where omega_quat = Quat(0, angularVelocity)
-        // This is the standard quaternion derivative formula.
+        // Quaternion integration: dq/dt = 0.5 * omega_quat * q
         Quat omegaQuat(
             body->angularVelocity.x,
             body->angularVelocity.y,
             body->angularVelocity.z,
             0.0f);
-
-        // q_new = q + 0.5 * omegaQuat * q * dt
-        Quat dq      = omegaQuat * body->orientation;
+        Quat dq           = omegaQuat * body->orientation;
         body->orientation = body->orientation + (0.5f * dt) * dq;
+        body->orientation = body->orientation.unit(); // renormalise to prevent drift
 
-        // Renormalise every step to prevent quaternion drift.
-        // Drift accumulates because we're doing Euler integration on the
-        // quaternion, which doesn't preserve the unit constraint exactly.
-        body->orientation = body->orientation.unit();
+        // ---- Sleep check ---------------------------------------------------
+        // If both linear and angular speeds are below the threshold,
+        // increment the sleep timer. If it exceeds SLEEP_TIME, put the body to sleep.
+        // Any applied force or impulse calls wake() to reset the timer.
+        //
+        // Why use a timer rather than checking once?
+        //   A body just settling can momentarily drop below the threshold
+        //   between bounces. Requiring N consecutive seconds prevents
+        //   falsely sleeping an object that's still in motion.
+        float linearSpeed  = body->linearVelocity.mag();
+        float angularSpeed = body->angularVelocity.mag();
+
+        if (linearSpeed < RigidBody::SLEEP_VELOCITY &&
+            angularSpeed < RigidBody::SLEEP_VELOCITY)
+        {
+            body->sleepTimer += dt;
+            if (body->sleepTimer >= RigidBody::SLEEP_TIME)
+            {
+                // Zero out residual velocity to prevent micro-movement on wake
+                body->linearVelocity  = {0.0f, 0.0f, 0.0f};
+                body->angularVelocity = {0.0f, 0.0f, 0.0f};
+                body->isSleeping      = true;
+            }
+        }
+        else
+        {
+            body->sleepTimer = 0.0f;
+        }
     }
 }
 
@@ -104,19 +114,29 @@ void PhysicsWorld::detectAndResolve()
 {
     // Brute-force O(n^2) broadphase -- fine for small scenes.
     // Each pair tested exactly once (j starts at i+1).
-    for (size_t i = 0; i < m_bodies.size(); ++i)
+     for (size_t i = 0; i < m_bodies.size(); ++i)
     {
         for (size_t j = i + 1; j < m_bodies.size(); ++j)
         {
             RigidBody &a = *m_bodies[i];
             RigidBody &b = *m_bodies[j];
 
-            // Skip static-static pairs -- they can never collide meaningfully
+            // Skip static-static (never collide meaningfully)
             if (!a.hasFiniteMass() && !b.hasFiniteMass()) continue;
+
+            // Skip sleeping-sleeping pairs UNLESS one is static
+            // (static bodies wake sleeping ones when another dynamic body hits them)
+            if (a.isSleeping && b.isSleeping) continue;
 
             CollisionManifold manifold = testCollision(a, b);
             if (manifold.hasCollision)
+            {
+                // Wake sleeping bodies that get hit
+                if (a.isSleeping) a.wake();
+                if (b.isSleeping) b.wake();
+
                 resolveCollision(manifold);
+            }
         }
     }
 }

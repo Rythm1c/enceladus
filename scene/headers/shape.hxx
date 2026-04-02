@@ -56,7 +56,7 @@ public:
     Mat4x4 getModel() const { return m_model.toMat4x4().transpose(); }
 
 protected:
-    Core                  &m_core;
+    Core                 &m_core;
     Buffer                m_vertexBuffer;
     Buffer                m_indexBuffer;
     Transform             m_model;
@@ -83,7 +83,7 @@ public:
      * @param colors   Per-vertex colours (RGB). Defaults to red/green/blue.
      */
     Triangle(
-        Core            &core,
+        Core      &core,
         Vector2f         position = {0.0f, 0.0f},
         float            size     = 0.5f,
         Vector3f         colorA   = {1.0f, 0.0f, 0.0f},
@@ -149,7 +149,7 @@ public:
      * @param tileUV UV tile count across the plane (useful for grid textures).
      */
     explicit Plane(
-        Core     &core,
+        Core &core,
         float    size   = 10.0f,
         Vector3f color  = {0.4f, 0.45f, 0.4f},
         float    tileUV = 1.0f);

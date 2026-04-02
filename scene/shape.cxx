@@ -103,9 +103,9 @@ void Shape::setTransform(const Transform &t)
 // =============================================================================
 
 Triangle::Triangle(
-    Core &core,
+    Core    &core,
     Vector2f position,
-    float size,
+    float    size,
     Vector3f colorA,
     Vector3f colorB,
     Vector3f colorC)
@@ -140,12 +140,12 @@ void Cube::buildGeometry()
 
     // Per-face colours (used when m_color == {-1,-1,-1})
     const std::array<Vector3f, 6> faceColors = {{
-        {1.0f, 0.2f, 0.2f},  // +X  red
-        {0.2f, 0.6f, 1.0f},  // -X  blue
-        {0.2f, 1.0f, 0.2f},  // +Y  green
-        {1.0f, 1.0f, 0.2f},  // -Y  yellow
-        {1.0f, 0.5f, 0.0f},  // +Z  orange
-        {0.8f, 0.2f, 1.0f},  // -Z  purple
+        {1.0f, 0.0f, 0.0f},  // +X  red
+        {0.0f, 0.0f, 1.0f},  // -X  blue
+        {0.0f, 1.0f, 0.0f},  // +Y  green
+        {1.0f, 1.0f, 0.0f},  // -Y  yellow
+        {1.0f, 0.0f, 1.0f},  // +Z  orange
+        {0.0f, 1.0f, 1.0f},  // -Z  purple
     }};
 
     const bool useUniform = (m_color.x >= 0.0f);

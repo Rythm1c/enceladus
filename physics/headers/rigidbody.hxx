@@ -22,7 +22,8 @@ struct RigidBody
     // ---- Inertia (diagonal of the inertia tensor in local space) -----------
     // Stored as inverse so division becomes multiplication in the solver.
     // Computed automatically by setMass() based on collider type.
-    Vector3f invInertia = {1.0f, 1.0f, 1.0f};
+    Mat3x3   inertiaTensor;
+    Mat3x3   invInertiaTensor;
 
     // ---- Accumulated forces (cleared at the end of each step) --------------
     Vector3f forceAccum  = {0.0f, 0.0f, 0.0f};
@@ -31,9 +32,13 @@ struct RigidBody
     // ---- Collision geometry -------------------------------------------------
     Collider collider;
 
-    // ---- Flags -------------------------------------------------------------
-    bool isStatic  = false;  // true = infinite mass, never moves
-    bool isSleeping = false; // future: sleep system to skip idle bodies
+    // ---- Sleep system ------------------------------------------------------
+    bool  isStatic   = false;
+    bool  isSleeping = false;
+    float sleepTimer = 0.0f;
+
+    static constexpr float SLEEP_VELOCITY  = 0.05f;  // speed below which body is a candidate
+    static constexpr float SLEEP_TIME      = 0.5f;   // seconds below threshold before sleeping
 
     /**
      * Set mass and recompute invMass + invInertia based on the current collider.
@@ -70,6 +75,8 @@ struct RigidBody
      */
     Transform getTransform() const;
 
+    Mat3x3 getWorldInvInertia() const;
+
     /**
      * Velocity of the body at a specific world-space point
      * (accounts for angular velocity).
@@ -82,6 +89,9 @@ struct RigidBody
      * (isStatic or invMass == 0).
      */
     bool hasFiniteMass() const {return !isStatic && invMass > 0.0f; }
+
+    /** Wake this body from sleep (call when an impulse or force is applied). */
+    void wake() { isSleeping = false; sleepTimer = 0.0f; }
 
 private:
     // Recomputes invInertia from mass and current collider geometry.

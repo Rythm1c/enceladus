@@ -64,11 +64,11 @@ public:
 private:
     std::vector<RigidBody *> m_bodies;
 
-    Vector3f m_gravity  = {0.0f, -0.981f, 0.0f};
+    Vector3f m_gravity  = {0.0f, -9.81f, 0.0f};
 
     // Maximum dt passed to a single integration step.
     // Prevents instability on very long frames (e.g. after a breakpoint).
-    float    m_maxStep  = 1.0f / 30.0f;
+    float    m_maxStep  = 1.0f / 60.0f;
 
     void integrate(float dt);
     void detectAndResolve();

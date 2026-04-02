@@ -201,10 +201,11 @@ Mat4x4 ShadowMap::computeLightSpaceMatrix(
 
     // Orthographic projection -- all rays are parallel for a directional light.
     // The frustum is a box centred on sceneCenter with half-size = sceneRadius.
+    // near is negative to include objects behind the light camera for proper shadow coverage
     const Mat4x4 lightProj = orthogonal(
         -sceneRadius,  sceneRadius,   // left, right
         -sceneRadius,  sceneRadius,   // bottom, top
-         0.1f,           sceneRadius * 2.0f); // near, far
+        -sceneRadius,       sceneRadius * 2.0f); // near, far (near is negative to extend behind camera)
 
     // Vulkan Y-flip (same correction as the camera)
     Mat4x4 proj = lightProj;

@@ -111,7 +111,7 @@ public:
     bool isCreated() const { return m_handle != VK_NULL_HANDLE; }
 
 private:
-    Core                  &m_core;
+    Core             &m_core;
     VkBuffer               m_handle           = VK_NULL_HANDLE;
     VkDeviceMemory         m_memory           = VK_NULL_HANDLE;
     VkMemoryRequirements   m_memRequirements  = {};

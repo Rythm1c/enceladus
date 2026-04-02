@@ -1,333 +1,38 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
-#include <vulkan/vulkan.h>
 #include <iostream>
-#include <memory>
-
-#include "../renderer/headers/core.hxx"
-#include "../renderer/headers/renderpass.hxx"
-#include "../renderer/headers/renderer.hxx"
-#include "../renderer/headers/descriptor.hxx"
-#include "../renderer/headers/pipeline.hxx"
-#include "../renderer/headers/swapchain.hxx"
-#include "../renderer/headers/vertex.hxx"
-#include "../headers/shadowmap.hxx"
-
-#include "../scene/headers/shape.hxx"
-#include "../scene/headers/camera.hxx"
-
-#include "../physics/headers/physicsworld.hxx"
-#include "../physics/headers/collider.hxx"
-#include "../physics/headers/rigidbody.hxx"
+#include "headers/application.hxx"
+#include "headers/scene.hxx"
 
 int main(int argc, char *argv[])
 {
     try
     {
-        // Initialize SDL2
-        if (SDL_Init(SDL_INIT_VIDEO) < 0)
+        const int WINDOW_WIDTH  = 800;
+        const int WINDOW_HEIGHT = 600;
+
+        // Initialize application (Vulkan, SDL, rendering pipeline)
+        Application app("Enceladus - Vulkan | SDL2", WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        // Create and setup scene (explicit scope so it's destroyed before app)
         {
-            std::cerr << "Failed to initialize SDL2: " << SDL_GetError() << std::endl;
-            return 1;
+            Scene scene(app.getCore(), WINDOW_WIDTH, WINDOW_HEIGHT);
+
+            // Add game objects
+            scene.addFloor(10.0f);
+            scene.addSphere(1.0f, 2.0f, -1.0f, 0.6f, 1.0f);
+            scene.addBox(3.0f, 3.0f, -2.0f, 0.5f, 0.5f, 0.5f, 2.0f);
+            scene.addBox(3.0f, 5.0f, -2.0f, 0.5f, 0.5f, 0.5f, 2.0f);
+
+            // Run the main loop
+            app.run(scene);
         }
+        // scene is now destroyed, releasing all buffers
+        // app will be destroyed next, destroying command buffers
 
-        const int window_width  = 800;
-        const int window_height = 600;
-
-        // Create SDL2 window
-        SDL_Window *window = SDL_CreateWindow(
-            "Enceladus - Vulkan | SDL2",
-            100, 100,
-            window_width,
-            window_height,
-            SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
-
-        if (!window)
-        {
-            std::cerr << "Failed to create window: " << SDL_GetError() << std::endl;
-            SDL_Quit();
-            return 1;
-        }
-
-        std::cout << "Window created: " << window_width << "x" << window_height << std::endl;
-
-        // ====================================================================
-        // Physics world
-        // ====================================================================
-
-        PhysicsWorld physicsWorld;
-
-        // ---- Floor (static plane) ------------------------------------------
-        RigidBody floorBody;
-        floorBody.collider  = Collider::makePlane(Vector3f(0.0f, 1.0f, 0.0f), -1.5f);
-        floorBody.makeStatic();
-        physicsWorld.addBody(&floorBody);
-
-        // ---- Sphere --------------------------------------------------------
-        RigidBody sphereBody;
-        sphereBody.position   = Vector3f(1.6f, 4.0f, -2.0f); // drop from height
-        sphereBody.collider   = Collider::makeSphere(0.6f);
-        sphereBody.restitution = 0.6f;
-        sphereBody.friction    = 0.4f;
-        sphereBody.setMass(1.0f);
-        physicsWorld.addBody(&sphereBody);
-
-        // ---- Cube (box) ----------------------------------------------------
-        // Box collisions not yet implemented -- cube renders but physics is
-        // placeholder until box vs plane/sphere detection is added.
-        RigidBody cubeBody;
-        cubeBody.position   = Vector3f(2.0f, 2.0f, -2.0f);
-        cubeBody.collider   = Collider::makeBox(Vector3f(0.5f, 0.5f, 0.5f));
-        cubeBody.restitution = 0.3f;
-        cubeBody.friction    = 0.6f;
-        cubeBody.setMass(2.0f);
-        //cubeBody.makeStatic();
-        physicsWorld.addBody(&cubeBody);
-
-        // ====================================================================
-        // Vulkan setup
-        // ====================================================================
-
-        auto core       = std::make_unique<Core>(window);
-        auto swapchain  = std::make_unique<Swapchain>(*core, window);
-        auto renderPass = std::make_unique<RenderPass>(*core, swapchain->getFormat(), swapchain->getDepthFormat());
-
-        // ---- Shadow Map -----------------------------------------------------
-
-        auto shadowMap = std::make_unique<ShadowMap>(*core);
-
-        // ---- Pipeline -------------------------------------------------------
-        // Shaders are RAII — destroyed when they go out of scope after pipeline creation.
-        Shader vertShader(*core, "build/shaders/shader.vert.spv");
-        Shader fragShader(*core, "build/shaders/shader.frag.spv");
-
-        VkPushConstantRange pushRange{};
-        pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        pushRange.offset     = 0;
-        pushRange.size       = sizeof(Mat4x4);
-
-        auto attribDescs = Vertex3D::getAttributeDescriptions();
-
-        auto descriptor = std::make_unique<Descriptor>(*core, MAX_FRAMES_IN_FLIGHT, *shadowMap);
-
-        PipelineConfig pipelineConfig{
-            .core                  = *core,
-            .renderPass            = renderPass->getHandle(),
-            .swapChainExtent       = swapchain->getExtent(),
-            .vertShader            = &vertShader,
-            .fragShader            = &fragShader,
-            .descriptorSetLayout   = descriptor->getLayout(),
-            .bindingDescriptions   = {Vertex3D::getBindingDescription()},
-            .attributeDescriptions = {attribDescs.begin(), attribDescs.end()},
-            .pushConstantRanges    = {pushRange},
-        };
-        auto pipeline = std::make_unique<Pipeline>(pipelineConfig);
-
-        /* pipelineConfig.wireframe = true;
-        pipelineConfig.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-        auto wireframePipeline = std::make_unique<Pipeline>(pipelineConfig); */
-
-        // ---- Renderer -------------------------------------------------------
-        RendererConfig rendererConfig{
-            .core                = *core,
-            .renderPass          = renderPass->getHandle(),
-            .swapChainExtent     = swapchain->getExtent(),
-            .swapChainImageViews = swapchain->getImageViews(),
-            .depthImageView      = swapchain->getDepthView(),
-            .descriptor          = *descriptor,
-        };
-        auto renderer = std::make_unique<Renderer>(rendererConfig);
-
-        // ---- Camera ---------------------------------------------------------
-        Camera camera(
-            { 0.0f,  0.0f, 3.0f},   // position: 3 units back
-            -90.0f,                 // yaw: looking toward -Z
-            0.0f,                   // pitch: level
-            { 0.0f, 1.0f,  0.0f},   // world up
-            45.0f,
-            static_cast<float>(window_width) / static_cast<float>(window_height)
-        );
-        // ---- Light ----------------------------------------------------------
-        // Defined once -- you can animate this in the loop if you want
-        LightUBO light{};
-        light.direction = { 0.6f, -1.0f, 0.4f, 0.0f }; // angled sun
-        light.color     = { 1.0f,  0.95f, 0.85f, 1.0f }; // warm white
-        light.ambient   = { 0.1f,  0.1f,  0.15f, 0.0f }; // cool ambient
-
-        /* Triangle triangle(*core);
-        triangle.upload();
-        triangle.setScale({1.5f, 1.5f, 1.0f}); */
-        
-
-        Cube cube(*core);
-        cube.upload();
-
-        Icosphere sphere(*core, 0.6, 3);
-        sphere.upload();
-
-        Plane floor(*core, 10.0f, {0.35f, 0.4f, 0.35f}, 5.0f);
-        floor.upload();
-        floor.setPosition({0.0f, -1.5f, 0.0f});
-
-        // ---- Timing ---------------------------------------------------------
-        uint64_t lastTicks  = SDL_GetTicks64();
-        float    deltaTime  = 0.0f;
-
-        // Main loop
-        bool running = true;
-        SDL_Event event;
-
-        while (running)
-        {
-            const uint64_t now = SDL_GetTicks64();
-            deltaTime  = static_cast<float>(now - lastTicks) / 1000.0f;
-            lastTicks  = now;
-
-            while (SDL_PollEvent(&event))
-            {
-                switch (event.type)
-                {
-                case SDL_QUIT:
-                    std::cout << "Quit event received, exiting main loop." << std::endl;
-                    running = false;
-                    break;
-                case SDL_KEYDOWN:
-                    switch (event.key.keysym.sym)
-                    {
-                    case SDLK_ESCAPE:
-                        running = false;
-                        break;
-                    // Toggle mouse capture with TAB
-                    case SDLK_TAB:
-                    {
-                        SDL_bool current = SDL_GetRelativeMouseMode();
-                        SDL_SetRelativeMouseMode(current ? SDL_FALSE : SDL_TRUE);
-                        break;
-                    }
-                    default: break;
-                    }
-                    break;
-                case SDL_MOUSEMOTION:
-                    // SDL_RELATIVEMOTION gives pixel deltas -- directly drive yaw/pitch
-                    {
-                        SDL_bool current = SDL_GetRelativeMouseMode();
-                        if (current)
-                        {
-                            camera.processMouse(
-                                static_cast<float>(event.motion.xrel),
-                                static_cast<float>(event.motion.yrel));
-                        }
-                    }
-                    break;
-
-                default: break;
-                }
-            }
-            // ---- Continuous keyboard movement -------------------------------
-            // SDL_GetKeyboardState returns a snapshot of the current key state,
-            // which handles held keys correctly (unlike SDL_KEYDOWN events which
-            // only fire once on press).
-            {
-                const Uint8 *keys = SDL_GetKeyboardState(nullptr);
-                if (keys[SDL_SCANCODE_W])
-                    camera.processKeyboard(CameraMovement::Forward,  deltaTime);
-                if (keys[SDL_SCANCODE_S])
-                    camera.processKeyboard(CameraMovement::Backward, deltaTime);
-                if (keys[SDL_SCANCODE_A]) 
-                    camera.processKeyboard(CameraMovement::Left,     deltaTime);
-                if (keys[SDL_SCANCODE_D]) 
-                    camera.processKeyboard(CameraMovement::Right,    deltaTime);
-                if (keys[SDL_SCANCODE_E]) 
-                    camera.processKeyboard(CameraMovement::Up,       deltaTime);
-                if (keys[SDL_SCANCODE_Q]) 
-                    camera.processKeyboard(CameraMovement::Down,     deltaTime);
-            }
-            
-            // ----------------------------------------------------------------
-            // Physics step
-            // ----------------------------------------------------------------
-            {
-                physicsWorld.step(deltaTime);
-                // ---- Sync render shapes with physics state ---------------------
-            // getTransformMatrix() returns a transposed (column-major) matrix
-            // ready for the shader.
-            sphere.setPosition(sphereBody.position);
-            sphere.setRotation(   sphereBody.orientation);
-
-            cube.setPosition(cubeBody.position);
-            cube.setRotation(   cubeBody.orientation);
-
-            // floorShape is static -- no sync needed
-            }
-
-            { // Render a frame
-                renderer->clearColor(0.2, 0.3, 0.6);
-
-                light.lightSpaceMatrix = shadowMap->computeLightSpaceMatrix(
-                Vector3f(light.direction.x, light.direction.y, light.direction.z),
-                Vector3f(0.0),
-                15.0f);
-
-                uint32_t frameIndex = renderer->getFrame(
-                    swapchain->getHandle(),
-                    swapchain->getExtent());
-
-                renderer->beginRecording();
-
-                {// ---- shadow render pass ------------------------------------
-                    shadowMap->beginRenderpass(renderer->getCommandBuffer());
-
-                    shadowMap->drawShadow(
-                        renderer->getCommandBuffer(),
-                        cube.getDrawData(),
-                        light.lightSpaceMatrix
-                    );
-                    
-                    shadowMap->drawShadow(
-                        renderer->getCommandBuffer(),
-                        sphere.getDrawData(),
-                        light.lightSpaceMatrix
-                    );
-
-                    shadowMap->endRenderpass(renderer->getCommandBuffer());
-
-                }
-
-                {// ---- main render pass --------------------------------------
-                    renderer->beginRenderPass(
-                    renderPass->getHandle(),
-                    frameIndex,
-                    swapchain->getExtent()
-                    );
-
-                    renderer->bindPipeline(*pipeline);
-
-                    renderer->bindDescriptors(camera.getUBO(), light, pipeline->getLayout());
-                    // render objects normally(filled/solid)
-                    //renderer->drawShape(triangle, *pipeline);
-                    renderer->draw(cube.getDrawData(),     *pipeline);
-                    renderer->draw(floor.getDrawData(),    *pipeline);
-                    renderer->draw(sphere.getDrawData(),   *pipeline);
-
-                    renderer->endRenderPass();
-                }
-
-                renderer->endRecording();
-                renderer->presentFrame(swapchain->getHandle(), frameIndex);
-
-            }
-        }
-
-        vkDeviceWaitIdle(core->getDevice());
-
-        SDL_DestroyWindow(window);
-        SDL_Quit();
+        return 0;
     }
-
     catch (const std::exception &e)
     {
         std::cerr << "Exception caught: " << e.what() << std::endl;
         return 1;
     }
-    return 0;
 }

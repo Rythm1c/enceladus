@@ -60,6 +60,17 @@ static float clampF(float v, float lo, float hi)
     return v < lo ? lo : (v > hi ? hi : v);
 }
 
+// Add a contact point to the manifold (up to 4 max)
+static void addContact(CollisionManifold &m, Vector3f pos, float depth)
+{
+    if (m.contactCount < 4)
+    {
+        m.contacts[m.contactCount].position = pos;
+        m.contacts[m.contactCount].depth    = depth;
+        ++m.contactCount;
+    }
+}
+
 // =============================================================================
 // Detection
 // =============================================================================
@@ -70,56 +81,39 @@ static float clampF(float v, float lo, float hi)
 CollisionManifold testSphereSphere(RigidBody &a, RigidBody &b)
 {
     CollisionManifold m;
-    m.bodyA = &a;
-    m.bodyB = &b;
+    m.bodyA = &a; m.bodyB = &b;
 
-    const float rA   = a.collider.sphere.radius;
-    const float rB   = b.collider.sphere.radius;
+    const float rA = a.collider.sphere.radius;
+    const float rB = b.collider.sphere.radius;
     const float rSum = rA + rB;
 
     Vector3f delta = a.position - b.position;
-    const float distSq = dot(delta, delta);
+    float distSq   = dot(delta, delta);
+    if (distSq >= rSum * rSum) return m;
 
-    // Early out: squared distance check avoids sqrt when not colliding
-    if (distSq >= (rSum * rSum))
-        return m;
-
-    const float dist = std::sqrt(distSq);
-
+    float dist     = std::sqrt(distSq);
     m.hasCollision = true;
-    m.depth        = rSum - dist;
-
-    // Normal from B toward A -- if centres coincide use world up to avoid NaN
     m.normal = (dist > 1e-6f) ? delta * (1.0f / dist) : Vector3f(0.0f, 1.0f, 0.0f);
 
-    // Contact point: surface of sphere B in the direction of A
-    m.contactPoint = b.position + m.normal * rB;
-
+    addContact(m, b.position + m.normal * rB, rSum - dist);
     return m;
 }
 
 CollisionManifold testSpherePlane(RigidBody &sphere, RigidBody &plane)
 {
     CollisionManifold m;
-    m.bodyA = &sphere;
-    m.bodyB = &plane;
+    m.bodyA = &sphere; m.bodyB = &plane;
 
-    const float     r = sphere.collider.sphere.radius;
-    const Vector3f &n = plane.collider.plane.normal;
-    const float     d = plane.collider.plane.distance;
+    const float    r = sphere.collider.sphere.radius;
+    const Vector3f n = plane.collider.plane.normal;
+    const float    d = plane.collider.plane.distance;
 
-    // Signed distance from sphere centre to plane:
-    // positive = sphere is on the side the normal points to
-    const float signedDist = dot(sphere.position, n) - d;
-
-    // sphere is fully above the plane
+    float signedDist = dot(sphere.position, n) - d;
     if (signedDist >= r) return m;
 
     m.hasCollision = true;
-    m.depth        = r - signedDist; // how far into the plane
-    m.normal       = n;              // plane normal always points from plane (B) toward sphere (A)
-    m.contactPoint = sphere.position - n * r; // bottom of sphere
-
+    m.normal       = n;
+    addContact(m, sphere.position - n * r, r - signedDist);
     return m;
 
 }
@@ -127,131 +121,117 @@ CollisionManifold testSpherePlane(RigidBody &sphere, RigidBody &plane)
 CollisionManifold testBoxBox(RigidBody &a, RigidBody &b)
 {
     CollisionManifold m;
-    m.bodyA = &a;
-    m.bodyB = &b;
+    m.bodyA = &a; m.bodyB = &b;
 
     auto axesA = getBoxAxes(a);
     auto axesB = getBoxAxes(b);
 
     const Vector3f &hA = a.collider.box.halfExtents;
     const Vector3f &hB = b.collider.box.halfExtents;
-
-    // Vector from B centre to A centre
-    // BA = BO + OA = OA - OB
-    Vector3f d =  a.position - b.position;
+    Vector3f d = a.position - b.position;
 
     float    minOverlap = FLT_MAX;
     Vector3f minAxis    = {0.0f, 1.0f, 0.0f};
 
-    // Helper: test one axis.
-    // Returns false if this is a separating axis (no collision on this axis).
-    // Updates minOverlap and minAxis if this axis has the smallest overlap so far.
-
-    auto testAxis = [&](Vector3f axis) -> bool 
+    auto testAxis = [&](Vector3f axis) -> bool
     {
         float axisLen = axis.mag();
-        // Skip near-zero axes (degenerate cross products when edges are parallel)
-        if (axisLen < 1e-6f) return true; // not separating, skip
-
+        if (axisLen < 1e-6f) return true;
         axis = axis * (1.0f / axisLen);
 
-        // Project both boxes onto this axis
-        float rA = projectBox(a, axesA, axis);
-        float rB = projectBox(b, axesB, axis);
+        float rA         = projectBox(a, axesA, axis);
+        float rB         = projectBox(b, axesB, axis);
+        float centreDist = std::abs(dot(d, axis));
+        if (centreDist > rA + rB) return false;
 
-        // Distance between centres projected onto axis
-        float centerDist = std::abs(dot(d, axis));
-
-        // If centre distance exceeds sum of radii => separating axis found
-        if (centerDist > (rA + rB)) return false;
-
-        float overlap = (rA + rB) - centerDist;
-        if(overlap < minOverlap)
+        float overlap = (rA + rB) - centreDist;
+        if (overlap < minOverlap)
         {
             minOverlap = overlap;
-            // Ensure axis points from B toward A (our normal convention)
-            minAxis = (dot(d, axis) < 0.0f) ? axis *-1.0f : axis;
+            minAxis    = (dot(d, axis) < 0.0f) ? axis * -1.0f : axis;
         }
-
-        return true; // not a separating axis
-
+        return true;
     };
 
-    // ---- Test 3 face normals of A ----------------------------------------
     if (!testAxis(axesA[0])) return m;
     if (!testAxis(axesA[1])) return m;
     if (!testAxis(axesA[2])) return m;
-
-    // ---- Test 3 face normals of B ----------------------------------------
     if (!testAxis(axesB[0])) return m;
     if (!testAxis(axesB[1])) return m;
     if (!testAxis(axesB[2])) return m;
-
-    // ---- Test 9 edge cross products ---------------------------------------
-    // Each of A's 3 edges crossed with each of B's 3 edges.
-    // Cross product of two parallel edges is zero -- testAxis handles that.
     for (int i = 0; i < 3; ++i)
-        for(int j =0; j < 3; ++j)
-            if(!testAxis(cross(axesA[i], axesB[j]))) return m;
-    
-    // No separating axis found -- boxes are overlapping
+        for (int j = 0; j < 3; ++j)
+            if (!testAxis(cross(axesA[i], axesB[j]))) return m;
+
     m.hasCollision = true;
-    m.depth        = minOverlap;
     m.normal       = minAxis;
 
-    // Contact point: midpoint between the two "touching" surfaces along the axis.
-    // A's surface point in the collision direction: move from A toward B by rA
-    // B's surface point in the collision direction: move from B toward A by rB
-    // The contact is halfway between these two surface points.
-    //
-    // This is approximate but stable for impulse resolution.
-    // A proper implementation would clip the incident face polygon to the
-    // reference face (Sutherland-Hodgman) for multi-point manifolds.
-    float rA = projectBox(a, axesA, minAxis);
-    float rB = projectBox(b, axesB, minAxis);
+    // Find contact points: corners of box B that penetrate box A.
+    // Transform each corner of B into A's local space and check if it's inside A.
+    // This gives up to 4 contacts for face-face configurations.
+    const Vector3f hBe = b.collider.box.halfExtents;
+    for (int sx : {-1,1})
+    for (int sy : {-1,1})
+    for (int sz : {-1,1})
+    {
+        if (m.contactCount >= 4) break;
 
-    Vector3f pointA = a.position - minAxis * rA; // A's surface toward B
-    Vector3f pointB = b.position + minAxis * rB; // B's surface toward A
-    m.contactPoint  = (pointA + pointB) * 0.5f;
+        Vector3f worldCorner = b.position
+            + axesB[0] * (hBe.x * sx)
+            + axesB[1] * (hBe.y * sy)
+            + axesB[2] * (hBe.z * sz);
+
+        // Check if this corner is inside box A
+        Vector3f localCorner = a.orientation.conjugate() * (worldCorner - a.position);
+        const Vector3f &hAe  = a.collider.box.halfExtents;
+        if (std::abs(localCorner.x) <= hAe.x + 1e-4f &&
+            std::abs(localCorner.y) <= hAe.y + 1e-4f &&
+            std::abs(localCorner.z) <= hAe.z + 1e-4f)
+        {
+            addContact(m, worldCorner, minOverlap);
+        }
+    }
+
+    // If no corners of B were inside A, fall back to midpoint approximation
+    if (m.contactCount == 0)
+    {
+        float rA = projectBox(a, axesA, minAxis);
+        float rB = projectBox(b, axesB, minAxis);
+        Vector3f pA = a.position - minAxis * rA;
+        Vector3f pB = b.position + minAxis * rB;
+        addContact(m, (pA + pB) * 0.5f, minOverlap);
+    }
 
     return m;
-
 }
 // =============================================================================
-// Box vs Plane
+// Box vs Plane -- up to 4 contact points
+//
+// Each penetrating corner is stored as a separate contact point.
+// This is the key change from the single-point version:
+//
+//   BEFORE: average penetrating corners -> 1 contact at the centroid
+//   AFTER:  store each corner -> N contacts, each receiving 1/N impulse
+//
+//   When a box rests flat on a plane, all 4 bottom corners penetrate equally.
+//   With 1 contact at the centroid, the impulse is applied at the box centre --
+//   correct for linear velocity but it applies zero torque (r = 0).
+//   With 4 contacts at the actual corners, each one applies a small torque.
+//   These torques cancel out for a flat box (symmetric) which is correct.
+//   For a slightly tilted box, the deeper corners produce stronger torques
+//   that actively rotate the box back to flat -- physical behaviour.
 // =============================================================================
-//
-// A box has 8 corners. We test each corner against the plane.
-// A corner is penetrating if its signed distance is negative.
-//   We average the penetrating corners
-//   to get the contact point, which gives stable multi-point contact
-//   (a box lying flat on a plane has 4 contact points -- averaging them
-//   gives the centre of the contact face, which prevents rocking).
-//
-// The deepest penetrating corner gives the penetration depth.
-// Normal is always the plane normal (box always pushed away from plane).
 CollisionManifold testBoxPlane(RigidBody &box, RigidBody &plane)
 {
     CollisionManifold m;
-    m.bodyA = &box;
-    m.bodyB = &plane;
+    m.bodyA = &box; m.bodyB = &plane;
 
     const Vector3f n = plane.collider.plane.normal;
     const float    d = plane.collider.plane.distance;
     const Vector3f h = box.collider.box.halfExtents;
+    auto           axes = getBoxAxes(box);
 
-    // Get the 3 local axes of the box in world space
-    auto axes = getBoxAxes(box);
-
-    // Build all 8 corners of the box in world space.
-    // Each corner is: centre + combination of +/- halfExtents along each axis
-    //
-    //   corner = position
-    //          + sx * h.x * axisX    (sx = +1 or -1)
-    //          + sy * h.y * axisY
-    //          + sz * h.z * axisZ
-    //
-    // There are 2^3 = 8 sign combinations.
+    // Build all 8 corners in world space
     Vector3f corners[8];
     int idx = 0;
     for (int sx : {-1, 1})
@@ -264,29 +244,61 @@ CollisionManifold testBoxPlane(RigidBody &box, RigidBody &plane)
             + axes[2] * (h.z * sz);
     }
 
-    // Find all penetrating corners and track the deepest
-    float    minDist      = FLT_MAX;
-    Vector3f contactSum   = {0,0,0};
-    int      contactCount = 0;
+    // Test each corner -- store every penetrating one as its own contact
+    /* for (int i = 0; i < 8 && m.contactCount < 4; ++i)
+    {
+        float dist = dot(corners[i], n) - d;
+        if (dist < 0.0f)
+        {
+            addContact(m, corners[i], -dist);
+        }
+    }*/
+
+    struct Candidate
+    {
+        Vector3f pos;
+        float depth;
+    };
+
+    Candidate candidates[8];
+    int count = 0;
 
     for (int i = 0; i < 8; ++i)
     {
-        float dist = dot(corners[i], n) - d; // signed distance to plane
-        if (dist < 0.0f) // corner is below the plane = penetrating
+        float dist = dot(corners[i], n) - d;
+
+        if (dist < 0.0f)
         {
-            if (dist < minDist) minDist = dist;
-            contactSum   = contactSum + corners[i];
-            contactCount++;
+            candidates[count++] =
+            {
+                corners[i],
+                -dist
+            };
         }
     }
 
-    if (contactCount == 0) return m; // no corners penetrating
+    // sort deepest first
+    std::sort(
+        candidates,
+        candidates + count,
+        [](const Candidate &a, const Candidate &b)
+        {
+            return a.depth > b.depth;
+        }
+    );
 
-    m.hasCollision = true;
-    m.depth        = -minDist; // minDist is negative, depth is positive
-    m.normal       = n;
-    // Average of penetrating corners gives a stable contact point
-    m.contactPoint = contactSum * (1.0f / (float)contactCount);
+    // take up to 4
+    for (int i = 0; i < std::min(count, 4); ++i)
+    {
+        addContact(m,
+            candidates[i].pos,
+            candidates[i].depth);
+    }
+    if (m.contactCount > 0)
+    {
+        m.hasCollision = true;
+        m.normal       = n;
+    }
     return m;
 }
 
@@ -308,87 +320,61 @@ CollisionManifold testBoxPlane(RigidBody &box, RigidBody &plane)
 CollisionManifold testBoxSphere(RigidBody &box, RigidBody &sphere)
 {
     CollisionManifold m;
-    m.bodyA = &box;
-    m.bodyB = &sphere;
+    m.bodyA = &box; m.bodyB = &sphere;
 
     const float    r = sphere.collider.sphere.radius;
     const Vector3f h = box.collider.box.halfExtents;
 
-    // sphere centre in box local space
+    // Sphere centre in box local space (conjugate = inverse rotation for unit quats)
     Vector3f localSphere = box.orientation.conjugate()
                          * (sphere.position - box.position);
-    
-    // closest point on AABB (in local space)
+
     Vector3f closest;
     closest.x = clampF(localSphere.x, -h.x, h.x);
     closest.y = clampF(localSphere.y, -h.y, h.y);
     closest.z = clampF(localSphere.z, -h.z, h.z);
 
-    // Is the sphere centre inside the box?
     bool inside = ( localSphere.x == closest.x &&
                     localSphere.y == closest.y &&
                     localSphere.z == closest.z);
-    
-    Vector3f delta  = localSphere - closest;
-    float    distSq = dot(delta, delta);
 
-    if (!inside && distSq >= (r * r)) return m; // outside sphere, no collision
+    Vector3f delta = localSphere - closest;
+    float distSq   = dot(delta, delta);
+    if (!inside && distSq >= r * r) return m;
 
     m.hasCollision = true;
 
-
     if (inside)
     {
-        // Find the axis of minimum penetration (closest face)
-        // Check how far we are from each face along each local axis
+        // Find the axis of least penetration to push sphere out of box
         float dists[6] = {
-            h.x - localSphere.x,  // +X face
-            h.x + localSphere.x,  // -X face
-            h.y - localSphere.y,  // +Y face
-            h.y + localSphere.y,  // -Y face
-            h.z - localSphere.z,  // +Z face
-            h.z + localSphere.z,  // -Z face
+            h.x - localSphere.x, h.x + localSphere.x,
+            h.y - localSphere.y, h.y + localSphere.y,
+            h.z - localSphere.z, h.z + localSphere.z,
         };
         Vector3f faceNormals[6] = {
-            { 1,0,0},{-1,0,0},
-            { 0,1,0},{0,-1,0},
-            { 0,0,1},{0,0,-1}
+            {1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}
         };
-
-        // Find the face with minimum distance (shallowest penetration)
         int minIdx = 0;
         for (int i = 1; i < 6; ++i)
             if (dists[i] < dists[minIdx]) minIdx = i;
 
-        // Push sphere out through that face
-        // Transform local normal back to world space
         auto axes = getBoxAxes(box);
         Vector3f localNormal = faceNormals[minIdx];
-        Vector3f worldNormal = axes[0] * localNormal.x
-                             + axes[1] * localNormal.y
-                             + axes[2] * localNormal.z;
+        Vector3f worldNormal = axes[0]*localNormal.x + axes[1]*localNormal.y + axes[2]*localNormal.z;
 
-        m.depth        = r + dists[minIdx];
-        m.normal       = worldNormal * -1.0f; // from box(B) toward sphere(A)
-        m.contactPoint = sphere.position;
+        m.normal = worldNormal * -1.0f;
+        addContact(m, sphere.position, r + dists[minIdx]);
     }
     else
     {
         float dist = std::sqrt(distSq);
-        // Transform closest point back to world space
-        auto axes = getBoxAxes(box);
+        auto  axes = getBoxAxes(box);
         Vector3f worldClosest = box.position
-            + axes[0] * closest.x
-            + axes[1] * closest.y
-            + axes[2] * closest.z;
+            + axes[0]*closest.x + axes[1]*closest.y + axes[2]*closest.z;
 
-        m.depth        = r - dist;
-        // Normal from sphere (B) toward closest point on box (A)
-        // Convention: normal always points FROM bodyB TOWARD bodyA
-        m.normal       = (dist > 1e-6f)
-                       ? (worldClosest - sphere.position) * (1.0f / dist)
-                        : Vector3f(0.0f, 1.0f, 0.0f);
-        m.contactPoint = worldClosest;
+        m.normal = (dist > 1e-6f) ? (sphere.position - worldClosest) * (1.0f / dist) : Vector3f(0.0f, 1.0f, 0.0f);
+        addContact(m, worldClosest, r - dist);
     }
 
     return m;
@@ -454,119 +440,99 @@ CollisionManifold testCollision(RigidBody &a, RigidBody &b)
 
 void resolveCollision(CollisionManifold &manifold)
 {
-    if(!manifold.hasCollision) return;
+    if (!manifold.hasCollision || manifold.contactCount == 0) return;
 
     RigidBody &a = *manifold.bodyA;
     RigidBody &b = *manifold.bodyB;
 
-    const Vector3f &n = manifold.normal;
+    const Vector3f &n    = manifold.normal;
+    const float invCount = 1.0f / static_cast<float>(manifold.contactCount);
 
-    // ---- 1. Normal impulse --------------------------------------------------
-
-    // Relative velocity at the contact point
-    Vector3f velA = a.velocityAtPoint(manifold.contactPoint);
-    Vector3f velB = b.velocityAtPoint(manifold.contactPoint);
-    Vector3f relVel = velA - velB;
-
-    // Component of relative velocity along the collision normal
-    float velAlongNormal = dot(relVel , n);
-
-    // Bodies already separating -- no impulse needed
-    if(velAlongNormal > 0.0f) return;
-
-    // Combined restitution (use minimum -- more physically conservative)
-    float e = (a.restitution < b.restitution) ? a.restitution : b.restitution;
-
-    // Angular contribution to the denominator:
-    //   (r x n) . I^-1 . (r x n)  for each body
-    // This accounts for how the impulse affects rotation.
-    auto angularFactor = [](const RigidBody &body, const Vector3f &r, const Vector3f &normal) -> float
+    auto angFactor = [](const RigidBody &body,
+                        const Vector3f  &r,
+                        const Vector3f  &axis) -> float
     {
-        Vector3f rxn = cross(r, normal);
-
-        Vector3f invI_rxn = Vector3f(
-            rxn.x * body.invInertia.x,
-            rxn.y * body.invInertia.y,
-            rxn.z * body.invInertia.z
-        );
-        return dot(cross(invI_rxn, r), normal);
+        Vector3f rxn  = cross(r, axis);
+        Vector3f iRxn = body.getWorldInvInertia() * rxn;
+        return dot(cross(iRxn, r), axis);
     };
 
-    Vector3f rA = manifold.contactPoint - a.position;
-    Vector3f rB = manifold.contactPoint - b.position;
-
-    float denom = a.invMass + b.invMass
-                + angularFactor(a, rA, n)
-                + angularFactor(b, rB, n);
-    
-    if(denom < 1e-8f) return;
-
-    // Magnitude of the normal impulse
-    float j = -(1.0f + e) * velAlongNormal / denom;
-
-    Vector3f impulse = n * j;
-
-    a.applyLinearImpulse(        impulse);
-    b.applyLinearImpulse(-1.0f * impulse);
-
-    a.applyAngularImpulse(        cross(rA, impulse));
-    b.applyAngularImpulse(-1.0f * cross(rB, impulse));
-
-    // ---- 2. Friction impulse ------------------------------------------------
-
-    // Recompute relative velocity after normal impulse
-    velA = a.velocityAtPoint(manifold.contactPoint);
-    velB = b.velocityAtPoint(manifold.contactPoint);
-    relVel = velA - velB;
-
-    Vector3f tangent = relVel - n * dot(relVel, n);
-    float tangentLen = tangent.mag();
-
-    if(tangentLen > 1e-6f)
+    for (int ci = 0; ci < manifold.contactCount; ++ci)
     {
-        tangent = tangent * (1.0f / tangentLen);
-        float denomT  = a.invMass + b.invMass 
-                    + angularFactor(a, rA, tangent)
-                    + angularFactor(b, rB, tangent);
-        
-        if(denomT > 1e-8f)
+        const Vector3f &cp = manifold.contacts[ci].position;
+
+        Vector3f rA = cp - a.position;
+        Vector3f rB = cp - b.position;
+
+        Vector3f relVel = a.velocityAtPoint(cp) - b.velocityAtPoint(cp);
+
+        float velAlongNormal = dot(relVel, n);
+        if (velAlongNormal > 0.0f) continue;
+
+        float e = (velAlongNormal < -0.5f)
+                ? std::min(a.restitution, b.restitution)
+                : 0.0f;
+
+        float denom = a.invMass + b.invMass
+                    + angFactor(a, rA, n)
+                    + angFactor(b, rB, n);
+        if (denom < 1e-8f) continue;
+
+        float    j       = -(1.0f + e) * velAlongNormal / denom * invCount;
+        Vector3f impulse = n * j;
+
+        a.applyLinearImpulse( impulse);
+        b.applyLinearImpulse(-1.0*impulse);
+
+        // KEY FIX: one negation only on B's angular impulse
+        // cross(r, impulse) gives the torque direction from a force at that point
+        // A gets positive torque, B gets equal and opposite (Newton's 3rd law)
+        a.applyAngularImpulse( cross(rA, impulse));
+        b.applyAngularImpulse(-1.0*cross(rB, impulse));
+
+        // Friction
+        relVel = a.velocityAtPoint(cp) - b.velocityAtPoint(cp);
+        Vector3f tangent    = relVel - n * dot(relVel, n);
+        float    tangentLen = tangent.mag();
+
+        if (tangentLen > 1e-6f)
         {
-            float jt = -dot(relVel, tangent) / denomT;
+            tangent = tangent * (1.0f / tangentLen);
 
-            // Coulomb's law: friction impulse clamped by mu * normal impulse
-            float mu     = (a.friction + b.friction) * 0.5f;
-            float jClamp = mu * j; // j is already the normal impulse magnitude
+            float denomT = a.invMass + b.invMass
+                        + angFactor(a, rA, tangent)
+                        + angFactor(b, rB, tangent);
 
-            // Use static friction if sliding is small, dynamic otherwise
-            Vector3f frictionImpulse;
-            if (std::abs(jt) <= std::abs(jClamp))
-                frictionImpulse = tangent * jt;           // static
-            else
-                frictionImpulse = tangent * (-jClamp);    // dynamic (kinetic)
+            if (denomT > 1e-8f)
+            {
+                float jt = -dot(relVel, tangent) / denomT * invCount;
+                float mu = (a.friction + b.friction) * 0.5f;
 
-            a.applyLinearImpulse(       frictionImpulse);
-            b.applyLinearImpulse(-1.0 * frictionImpulse);
-            a.applyAngularImpulse(       cross(rA,  frictionImpulse));
-            b.applyAngularImpulse(-1.0 * cross(rB, -1.0 * frictionImpulse));
+                // Static friction if clamping not needed, kinetic otherwise
+                // Kinetic: use copysign to preserve sliding direction
+                Vector3f fImpulse = (std::abs(jt) <= mu * std::abs(j))
+                                  ? tangent * jt
+                                  : tangent * std::copysign(-mu * std::abs(j), jt);
+
+                a.applyLinearImpulse( fImpulse);
+                b.applyLinearImpulse(-1.0*fImpulse);
+
+                // Apply torques from friction at this contact point
+                a.applyAngularImpulse( cross(rA, fImpulse));
+                b.applyAngularImpulse(-1.0*cross(rB, fImpulse));
+            }
         }
     }
 
-    // ---- 3. Positional correction (Baumgarte stabilisation) ----------------
-    // Without this, floating-point errors cause objects to slowly sink into
-    // each other over many frames. We push bodies apart by a fraction of the
-    // penetration depth each step.
-    //
-    // slop:  small allowed penetration before correction kicks in (prevents jitter)
-    // percent: fraction of penetration corrected per step (0.2-0.4 is typical)
-    const float slop    = 0.01f;
-    const float percent = 0.3f;
-
-    float correctionMag = std::max(manifold.depth - slop, 0.0f)
-                        / (a.invMass + b.invMass)
-                        * percent;
-    Vector3f correction = n * correctionMag;
-
-    if (a.hasFiniteMass()) a.position += correction * a.invMass;
-    if (b.hasFiniteMass()) b.position -= correction * b.invMass;
-
+    // Baumgarte
+    const float slop   = 0.01f;
+    const float pct    = 0.1f;
+    float       totInv = a.invMass + b.invMass;
+    if (totInv > 1e-8f)
+    {
+        float corrMag = std::max(manifold.maxDepth() - slop, 0.0f) / totInv * pct;
+        Vector3f corr = n * corrMag;
+        if (a.hasFiniteMass()) a.position = a.position + corr * a.invMass;
+        if (b.hasFiniteMass()) b.position = b.position - corr * b.invMass;
+    }
 } 
