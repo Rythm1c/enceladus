@@ -135,6 +135,22 @@ private:
     void buildGeometry() override;
 };
 
+
+// a cube subdived and then projected onto a sphere
+class CubeSphere : public Shape
+{
+public:
+    explicit CubeSphere(
+        Core    &core,
+        float    radius       = 0.5f,
+        int      subdivisions = 3,
+        Vector3f color        = {-1.0f, -1.0f, -1.0f});
+private:
+    float    m_radius;
+    int      m_subdivisions;
+    Vector3f m_color;
+    void buildGeometry() override;
+};
 // =============================================================================
 // Plane -- flat XZ quad, normal pointing up (+Y).
 // Use as physics floor / ground plane.

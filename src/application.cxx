@@ -17,6 +17,7 @@
 #include "../renderer/headers/vertex.hxx"
 #include "../renderer/headers/shadowmap.hxx"
 #include "../renderer/headers/drawable.hxx"
+#include "../renderer/headers/ubo.hxx"
 
 #include "../scene/headers/camera.hxx"
 
@@ -54,7 +55,7 @@ void Application::initializeSDL(const std::string &title)
         title.c_str(),
         100, 100,
         m_width, m_height,
-        SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
+        SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
     if (!m_window)
     {
@@ -98,6 +99,13 @@ void Application::initializeVulkan()
     };
     m_pipeline = std::make_unique<Pipeline>(pipelineConfig);
 
+    // ---- Wireframe Pipeline -------------------------------------------------------
+
+    pipelineConfig.wireframe = true;
+    pipelineConfig.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+    m_wireframePipeline = std::make_unique<Pipeline>(pipelineConfig);
+
+
     // ---- Renderer -------------------------------------------------------
     RendererConfig rendererConfig{
         .core                = *m_core,
@@ -127,6 +135,7 @@ void Application::shutdownVulkan()
     
     // Then destroy the resources they were referencing
     m_pipeline.reset();
+    m_wireframePipeline.reset();
     m_descriptor.reset();
     m_shadowMap.reset();
     m_renderPass.reset();
@@ -205,6 +214,15 @@ bool Application::pollEvents()
             default: break;
             }
             break;
+        case SDL_MOUSEMOTION:
+            {
+                // Get mouse motion
+                if (SDL_GetRelativeMouseMode())
+                {
+                    m_mouseX = event.motion.xrel;
+                    m_mouseY = event.motion.yrel;
+                }
+            }
 
         default: break;
         }
@@ -215,20 +233,17 @@ bool Application::pollEvents()
 void Application::handleInput(Scene &scene, float deltaTime)
 {
     const Uint8 *keys = SDL_GetKeyboardState(nullptr);
-    
-    // Get mouse motion
-    int mouseX = 0, mouseY = 0;
-    if (SDL_GetRelativeMouseMode())
-    {
-        SDL_GetRelativeMouseState(&mouseX, &mouseY);
-    }
 
-    scene.handleInput(deltaTime, keys, mouseX, mouseY);
+    scene.handleInput(deltaTime, keys, m_mouseX, m_mouseY);
+    //
+    m_mouseX = 0;
+    m_mouseY = 0;
 }
 
 void Application::updateScene(Scene &scene, float deltaTime)
 {
-    scene.update(deltaTime);
+    scene.update(deltaTime, 
+        static_cast<float>(m_width) / static_cast<float>(m_height));
 }
 
 void Application::renderFrame(Scene &scene)
@@ -236,8 +251,8 @@ void Application::renderFrame(Scene &scene)
     m_renderer->clearColor(0.2, 0.3, 0.6);
 
     // Compute light space matrix
-    const auto &light = scene.getLight();
-    Mat4x4 lightSpaceMatrix = m_shadowMap->computeLightSpaceMatrix(
+    auto light = scene.getLight();
+    light.lightSpaceMatrix = m_shadowMap->computeLightSpaceMatrix(
         Vector3f(light.direction.x, light.direction.y, light.direction.z),
         Vector3f(0.0),
         15.0f);
@@ -257,7 +272,7 @@ void Application::renderFrame(Scene &scene)
             m_shadowMap->drawShadow(
                 m_renderer->getCommandBuffer(),
                 drawable,
-                lightSpaceMatrix);
+                light.lightSpaceMatrix);
         }
 
         m_shadowMap->endRenderpass(m_renderer->getCommandBuffer());
@@ -270,10 +285,27 @@ void Application::renderFrame(Scene &scene)
             frameIndex,
             m_swapchain->getExtent());
 
-        m_renderer->bindPipeline(*m_pipeline);
+        if(m_wireframeMode)
+        {
+            m_renderer->bindPipeline(*m_wireframePipeline);
+            m_renderer->bindDescriptors(scene.getCamera().getUBO(), light, m_wireframePipeline->getLayout());
+            for (const auto &drawable : scene.getDrawables())     
+            {
+                m_renderer->draw(drawable, *m_wireframePipeline);
+            }
+        }
+        else
+        {
+            m_renderer->bindPipeline(*m_pipeline);
+            m_renderer->bindDescriptors(scene.getCamera().getUBO(), light, m_pipeline->getLayout());
 
-        const auto &camera = scene.getCamera();
-        m_renderer->bindDescriptors(camera.getUBO(), light, m_pipeline->getLayout());
+            for (const auto &drawable : scene.getDrawables())
+            {
+                m_renderer->draw(drawable, *m_pipeline);
+            }
+        }
+
+        m_renderer->bindDescriptors(scene.getCamera().getUBO(), light, m_pipeline->getLayout());
 
         for (const auto &drawable : scene.getDrawables())
         {
@@ -328,6 +360,12 @@ void Application::recreateSwapchain()
         .pushConstantRanges    = {pushRange},
     };
     m_pipeline = std::make_unique<Pipeline>(pipelineConfig);
+
+    // ---- Wireframe Pipeline -------------------------------------------------------
+
+    pipelineConfig.wireframe = true;
+    pipelineConfig.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+    m_wireframePipeline = std::make_unique<Pipeline>(pipelineConfig);
 
     // ---- Renderer -------------------------------------------------------
     RendererConfig rendererConfig{

@@ -140,12 +140,12 @@ void Cube::buildGeometry()
 
     // Per-face colours (used when m_color == {-1,-1,-1})
     const std::array<Vector3f, 6> faceColors = {{
-        {1.0f, 0.0f, 0.0f},  // +X  red
-        {0.0f, 0.0f, 1.0f},  // -X  blue
-        {0.0f, 1.0f, 0.0f},  // +Y  green
-        {1.0f, 1.0f, 0.0f},  // -Y  yellow
-        {1.0f, 0.0f, 1.0f},  // +Z  orange
-        {0.0f, 1.0f, 1.0f},  // -Z  purple
+        {9.0f, 2.0f, 3.0f},  // +X  red
+        {0.2f, 0.3f, 8.0f},  // -X  blue
+        {0.3f, 0.8f, 1.0f},  // +Y  green
+        {0.9f, 0.8f, 0.1f},  // -Y  yellow
+        {0.7f, 0.0f, 0.9f},  // +Z  orange
+        {0.2f, 8.0f, 0.9f},  // -Z  purple
     }};
 
     const bool useUniform = (m_color.x >= 0.0f);
@@ -204,11 +204,129 @@ Cube::Cube(Core &core, float size, Vector3f color)
     : Shape(core), m_size(size), m_color(color)
 {}
 
+CubeSphere::CubeSphere(
+        Core    &core,
+        float    radius, 
+        int      subdivisions, 
+        Vector3f color) 
+        : Shape(core), m_radius(radius), m_subdivisions(subdivisions)
+{}
+
+void CubeSphere::buildGeometry()
+{
+
+    // Per-face colours (used when m_color == {-1,-1,-1})
+    std::array<Vector3f, 6> faceColors = {{
+        {9.0f, 2.0f, 3.0f},  // +X  red
+        {0.2f, 0.3f, 8.0f},  // -X  blue
+        {0.3f, 0.8f, 1.0f},  // +Y  green
+        {0.9f, 0.8f, 0.1f},  // -Y  yellow
+        {0.7f, 0.0f, 0.9f},  // +Z  orange
+        {0.2f, 8.0f, 0.9f},  // -Z  purple
+    }};
+
+    if (m_color.x > 0.0f)
+    {
+        for(auto &color: faceColors)
+            color = m_color;
+    }
+
+    const float step = 2.0f / (float)m_subdivisions;
+    //  ________
+    // |__|__|__|  subdivide a square and project(normalize) points to a sphere
+    // |__|__|__|  <- square with three divisions 
+    // |__|__|__|
+    // ___ params _____________________________________
+    // start     : starting point. Has to be the top-left corner of each face because of the uv is calculated
+    // latitude  : a direction vector sweeping along the latitude of the surface 
+    // longitude : a direction vector sweeping along the longitude of the surface
+    // color     : self explanatory
+    auto subDivideFace =  [&](Vector3f start, Vector3f latitude, Vector3f longitude, Color3f color) -> std::vector<Vertex3D>
+    {
+        std::vector<Vertex3D> vertices;
+
+        for(int j = 0; j < (m_subdivisions + 1); ++j)
+        { 
+            for (int i = 0; i < (m_subdivisions + 1); ++i) 
+            {                                              
+                Vector3f position = start + ((float)i * latitude) + ((float)j * longitude);
+
+                float u = (float)i / (float)(m_subdivisions + 1);
+                float v = 1.0f -  ((float)j / float(m_subdivisions + 1));
+
+                // Use cube-to-sphere projection: normalize, then adjust by sqrt(1 + x²/2 + y²/2)
+                // This reduces area distortion at cube corners compared to simple normalization
+                Vector3f normalized = position.unit();
+                float factor = std::sqrt(1.0f + normalized.x * normalized.x * 0.5f + normalized.y * normalized.y * 0.5f);
+                Vector3f adjusted = normalized * (1.0f / factor);
+
+                vertices.push_back(Vertex3D{
+                    .pos    = adjusted * m_radius,
+                    .normal = adjusted,
+                    .uv     = {u, v},
+                    .col    = color,
+                });
+            }                                        
+            
+        }
+
+        return vertices;
+    };
+
+    
+    std::vector<Vertex3D> faces[6] = {
+        // +Z face
+        subDivideFace({-1.0, 1.0, 1.0}, {step , 0.0, 0.0}, {0.0,-step, 0.0}, faceColors[0]),
+        // -Z face
+        subDivideFace({1.0, 1.0,-1.0},  {-step, 0.0, 0.0}, {0.0,-step, 0.0}, faceColors[1]),
+        // +Y face
+        subDivideFace({-1.0, 1.0,-1.0}, {step , 0.0, 0.0}, {0.0, 0.0, step}, faceColors[2]),
+        // -Y face
+        subDivideFace({1.0,-1.0,-1.0},  {-step, 0.0, 0.0}, {0.0, 0.0, step}, faceColors[3]),
+        // +X face
+        subDivideFace({1.0, 1.0, 1.0},  {0.0, 0.0,-step},  {0.0,-step, 0.0}, faceColors[4]),
+        // -X face
+        subDivideFace({-1.0, 1.0,-1.0}, {0.0, 0.0, step},  {0.0,-step, 0.0}, faceColors[5])
+    
+    };
+
+    // index generation
+    for (int i = 0; i < 6; i++)
+    {
+        size_t base = m_vertices.size();
+        for (uint16_t row = 0; row < m_subdivisions; ++row)
+        {
+            for(uint16_t col = 0; col < m_subdivisions; ++col)
+            {
+                
+                uint16_t idx1 = ((uint16_t)m_subdivisions + 1) * row        + col + 0;
+                uint16_t idx2 = ((uint16_t)m_subdivisions + 1) * (row + 1)  + col + 0;
+                uint16_t idx3 = ((uint16_t)m_subdivisions + 1) * row        + col + 1;
+
+                uint16_t idx4 = ((uint16_t)m_subdivisions + 1) * row        + col + 1;
+                uint16_t idx5 = ((uint16_t)m_subdivisions + 1) * (row + 1)  + col + 0;
+                uint16_t idx6 = ((uint16_t)m_subdivisions + 1) * (row + 1)  + col + 1;
+
+                m_indices.push_back((uint16_t)base + idx1);
+                m_indices.push_back((uint16_t)base + idx2);
+                m_indices.push_back((uint16_t)base + idx3);
+
+                m_indices.push_back((uint16_t)base + idx4);
+                m_indices.push_back((uint16_t)base + idx5);
+                m_indices.push_back((uint16_t)base + idx6);
+            }
+            
+        }
+
+        auto face = faces[i];
+        m_vertices.insert(m_vertices.end(), face.begin(), face.end());
+    }
+}
+
 Icosphere::Icosphere(Core &core, float radius, int subdivisions, Vector3f color)
     : Shape(core), m_radius(radius), m_subdivisions(subdivisions), m_color(color)
 {}
-// TODO: fix this later 
-// claude fucked it up 
+// TODO: fix this later claude fucked it up 
 void Icosphere::buildGeometry()
 {
     // Start with a regular icosahedron.
@@ -297,6 +415,7 @@ void Icosphere::buildGeometry()
             static_cast<uint16_t>(f[1]),
             static_cast<uint16_t>(f[2])});
 }
+
 
 // =============================================================================
 // Plane

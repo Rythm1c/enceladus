@@ -60,7 +60,7 @@ void Scene::addFloor(float width, float height)
     m_drawablesDirty = true;
 }
 
-void Scene::addSphere(float x, float y, float z, float radius, float mass)
+void Scene::addSphere(float x, float y, float z, float radius, int subDivisions, float mass)
 {
     // Physics body
     auto sphereBody = std::make_unique<RigidBody>();
@@ -74,7 +74,7 @@ void Scene::addSphere(float x, float y, float z, float radius, float mass)
     m_physicsWorld->addBody(bodyPtr);
 
     // Rendering sphere
-    auto sphere = std::make_unique<Icosphere>(m_core, radius, 3);
+    auto sphere = std::make_unique<CubeSphere>(m_core, radius, subDivisions);
     sphere->setPosition({x, y, z});
     sphere->upload();
     
@@ -106,8 +106,9 @@ void Scene::addBox(float x, float y, float z, float halfX, float halfY, float ha
     m_drawablesDirty = true;
 }
 
-void Scene::update(float deltaTime)
+void Scene::update(float deltaTime, float aspect)
 {
+    m_camera->setAspect(aspect);
     // Update physics
     // m_physicsWorld->step(deltaTime);
     

@@ -32,7 +32,7 @@ public:
     /**
      * Update the scene (physics, objects, etc.) for the given delta time.
      */
-    void update(float deltaTime);
+    void update(float deltaTime, float aspect);
 
     /**
      * Handle camera input (mouse and keyboard).
@@ -40,7 +40,7 @@ public:
     void handleInput(float deltaTime, const uint8_t *keys, int mouseX, int mouseY);
 
     // ---- Accessors for rendering ----------------------------------------
-    Camera &getCamera() { return *m_camera; }
+
     const Camera &getCamera() const { return *m_camera; }
     
     const LightUBO &getLight() const { return m_light; }
@@ -53,7 +53,7 @@ public:
 
     // ---- Scene setup (called before run()) --------- -----
     void addFloor(float width, float height = 10.0f);
-    void addSphere(float x, float y, float z, float radius = 0.6f, float mass = 1.0f);
+    void addSphere(float x, float y, float z, float radius = 0.6f, int subDivisions = 3, float mass = 1.0f);
     void addBox(float x, float y, float z, float halfX = 0.5f, float halfY = 0.5f, float halfZ = 0.5f, float mass = 2.0f);
 
 private:

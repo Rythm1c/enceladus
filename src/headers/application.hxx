@@ -53,12 +53,16 @@ public:
     int   getHeight() const { return m_height; }
     Core &getCore()         { return *m_core; }
 
+    void toggleWireframe() { m_wireframeMode = !m_wireframeMode; }
+
 private:
     // Window/System
     SDL_Window *m_window = nullptr;
     int         m_width;
     int         m_height;
     bool        m_windowResized = false;
+    bool        m_wireframeMode = false;
+    int m_mouseX = 0, m_mouseY = 0;
 
     // Graphics pipeline (initialized in order)
     std::unique_ptr<Core>       m_core;
@@ -67,6 +71,7 @@ private:
     std::unique_ptr<ShadowMap>  m_shadowMap;
     std::unique_ptr<Descriptor> m_descriptor;
     std::unique_ptr<Pipeline>   m_pipeline;
+    std::unique_ptr<Pipeline>   m_wireframePipeline;
     std::unique_ptr<Renderer>   m_renderer;
 
     // Initialization helpers

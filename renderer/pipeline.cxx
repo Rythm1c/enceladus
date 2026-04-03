@@ -80,7 +80,7 @@ Pipeline::Pipeline(PipelineConfig &config)
     rasterizer.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rasterizer.depthClampEnable        = VK_FALSE;
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    rasterizer.polygonMode             = config.wireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
+    rasterizer.polygonMode             = VK_POLYGON_MODE_FILL;  // Always FILL (device doesn't support fillModeNonSolid)
     rasterizer.lineWidth               = 1.0f;
     if(config.depthOnly)
     {

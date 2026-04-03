@@ -18,15 +18,15 @@ int main(int argc, char *argv[])
 
             // Add game objects
             scene.addFloor(10.0f);
-            scene.addSphere(1.0f, 2.0f, -1.0f, 0.6f, 1.0f);
-            scene.addBox(3.0f, 3.0f, -2.0f, 0.5f, 0.5f, 0.5f, 2.0f);
-            scene.addBox(3.0f, 5.0f, -2.0f, 0.5f, 0.5f, 0.5f, 2.0f);
+            scene.addSphere(-1.0f, 0.0f, -1.0f, 1.0f, 10.0f, 1.0f);
+            scene.addBox(5.0f, 0.0f, -2.0f, 0.5f, 0.5f, 0.5f, 2.0f);
+            scene.addBox(3.0f, 0.0f, -2.0f, 0.5f, 0.5f, 0.5f, 2.0f);
 
+            app.toggleWireframe(); // Start in wireframe mode for debugging
             // Run the main loop
             app.run(scene);
+        
         }
-        // scene is now destroyed, releasing all buffers
-        // app will be destroyed next, destroying command buffers
 
         return 0;
     }
