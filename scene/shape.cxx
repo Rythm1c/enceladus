@@ -326,94 +326,158 @@ void CubeSphere::buildGeometry()
 Icosphere::Icosphere(Core &core, float radius, int subdivisions, Vector3f color)
     : Shape(core), m_radius(radius), m_subdivisions(subdivisions), m_color(color)
 {}
-// TODO: fix this later claude fucked it up 
 void Icosphere::buildGeometry()
 {
     // Start with a regular icosahedron.
     // The golden ratio phi appears naturally in the coordinates of an icosahedron.
-    const float phi = (1.0f + std::sqrt(5.0f)) / 2.0f;
+    const float v_angle = std::atan(0.5f);// ~26.565° angle from the Y axis to the second ring of vertices  
+    const float h_angle = to_radians(72.0f);
 
-    // 12 base vertices -- each pair of coordinates forms a golden rectangle.
-    // All are normalized to the unit sphere.
-    std::vector<Vector3f> positions = {
-        Vector3f(-1,  phi, 0).unit(), Vector3f( 1,  phi, 0).unit(),
-        Vector3f(-1, -phi, 0).unit(), Vector3f( 1, -phi, 0).unit(),
-        Vector3f( 0, -1, phi).unit(), Vector3f( 0,  1, phi).unit(),
-        Vector3f( 0, -1,-phi).unit(), Vector3f( 0,  1,-phi).unit(),
-        Vector3f( phi, 0, -1).unit(), Vector3f( phi, 0,  1).unit(),
-        Vector3f(-phi, 0, -1).unit(), Vector3f(-phi, 0,  1).unit(),
-    };
-
-    // 20 triangular faces of the base icosahedron
-    std::vector<std::array<uint32_t, 3>> faces = {
-        {0,11,5},{0,5,1},{0,1,7},{0,7,10},{0,10,11},
-        {1,5,9},{5,11,4},{11,10,2},{10,7,6},{7,1,8},
-        {3,9,4},{3,4,2},{3,2,6},{3,6,8},{3,8,9},
-        {4,9,5},{2,4,11},{6,2,10},{8,6,7},{9,8,1},
-    };
-
-    // Subdivide each triangle into 4 smaller triangles N times.
-    // Each edge midpoint is pushed back onto the unit sphere (normalize).
-    // A cache avoids creating duplicate midpoint vertices for shared edges.
-    for (int s = 0; s < m_subdivisions; ++s)
+    std::vector<Vertex3D> vertices;
+    //top vertices(5 because of uv mappping)
+    for(int i = 0; i < 5; ++i)
     {
-        std::unordered_map<uint64_t, uint32_t> midpointCache;
-        std::vector<std::array<uint32_t, 3>> newFaces;
-        newFaces.reserve(faces.size() * 4);
+        float theta = i * h_angle;
+        float y = std::sin(3.0f * v_angle);
+        vertices.push_back(Vertex3D{
+            .pos    = {0.0f,    y, 0.0f},
+            .normal = {0.0f, 1.0f, 0.0f},
+            .uv     = {float(i) / 4.0f, 1.0f},
+            .col    = m_color,
+        });
+    }
+    // second ring vertices
+    for (int i = 0; i < 5; ++i)
+    {
+        float theta = i * h_angle;
+        float x = std::cos(theta) * std::cos(v_angle);
+        float z = std::sin(theta) * std::cos(v_angle);
+        float y = std::sin(v_angle);
+        vertices.push_back(Vertex3D{
+            .pos    = {x, y, z},
+            .normal = {x, y, z},
+            .uv     = {float(i) / 4.0f, 0.75f},
+            .col    = m_color,
+        });
+    }
+    //third ring vertices
+    for (int i = 0; i < 5; ++i)
+    {
+        float theta = (i + 0.5f) * h_angle;
+        float x = std::cos(theta) * std::cos(v_angle);
+        float z = std::sin(theta) * std::cos(v_angle);
+        float y = std::sin(-v_angle);
+        vertices.push_back(Vertex3D{
+            .pos    = {x, y, z},
+            .normal = {x, y, z},
+            .uv     = {(float(i) + 0.5f) / 4.0f, 0.25f},
+            .col    = m_color,
+        });
+    }
+    // bottom vertices(5 because of uv mappping)
+    for(int i = 0; i < 5; ++i)
+    {
+        float theta = (i + 0.5f) * h_angle;
+        float y = std::sin(-3.0f * v_angle);
+        vertices.push_back(Vertex3D{
+            .pos    = {0.0f,     y, 0.0f},
+            .normal = {0.0f, -1.0f, 0.0f},
+            .uv     = {(float(i) + 0.5f) / 4.0f, 0.0f},
+            .col    = m_color,
+        });
+    }
 
-        auto getMidpoint = [&](uint32_t a, uint32_t b) -> uint32_t
-        {
-            // Pack two 32-bit indices into one 64-bit key (order-independent)
-            uint64_t key = (uint64_t)std::min(a, b) << 32 | std::max(a, b);
-            auto it = midpointCache.find(key);
-            if (it != midpointCache.end()) return it->second;
 
-            // New midpoint -- push onto unit sphere
-            Vector3f mid = (Vector3f(positions[a] + positions[b]) * 0.5f).unit();
-            uint32_t idx = static_cast<uint32_t>(positions.size());
-            positions.push_back(mid);
-            midpointCache[key] = idx;
-            return idx;
+    std::vector<uint16_t> indices;
+    // top triangles
+    for(uint16_t i = 0; i < 5; ++i)
+    {
+        indices.push_back(i);
+        indices.push_back(5 + ((i + 1) % 5));
+        indices.push_back(5 + i);
+    }
+
+    //middle triangles
+    for(uint16_t i = 0; i < 5; ++i)
+    {
+        indices.push_back(5 + i);
+        indices.push_back(5 + ((i + 1) % 5));
+        indices.push_back(10 + i);
+        
+        indices.push_back(5 + ((i + 1) % 5));
+        indices.push_back(10 + ((i + 1) % 5));
+        indices.push_back(10 + i);
+    }
+
+    // bottom triangles
+    for(uint16_t i = 0; i < 5; ++i)
+    {
+        indices.push_back(10 + i);
+        indices.push_back(10 + ((i + 1) % 5));
+        indices.push_back(15 + i);
+    }
+
+    // Subdivide triangles
+    auto midPoint = [&](Vertex3D a, Vertex3D b) -> Vertex3D
+    {
+        Vector3f mid = ((a.pos + b.pos) * 0.5f).unit() * m_radius;
+        Vector2f uv  = (a.uv  + b.uv)  * 0.5f;
+
+        return Vertex3D{.pos    = mid,
+                        .normal = mid,
+                        .uv     = uv,
+                        .col    = m_color,
         };
+    };
 
-        for (auto &f : faces)
+
+    for (int i = 0; i < m_subdivisions; ++i)
+    {
+        std::vector<Vertex3D> newVerts;
+        std::vector<uint16_t> newIndices;
+
+        for (size_t j = 0; j < indices.size(); j += 3)
         {
-            uint32_t a = getMidpoint(f[0], f[1]);
-            uint32_t b = getMidpoint(f[1], f[2]);
-            uint32_t c = getMidpoint(f[2], f[0]);
-            newFaces.push_back({f[0], a, c});
-            newFaces.push_back({f[1], b, a});
-            newFaces.push_back({f[2], c, b});
-            newFaces.push_back({a,    b, c});
+        // find 2 end vertices on the edges of the current row
+        //          v1           
+        //         /  \           
+        //        /    \        
+        //    m1 *------* m3  
+        //      /  \  /  \       
+        //    v2----*-----v3    
+        //          m2
+            auto addTriangle = [&](Vertex3D a, Vertex3D b, Vertex3D c)
+            {
+                uint16_t base = static_cast<uint16_t>(newVerts.size());
+                newVerts.push_back(a);
+                newVerts.push_back(b);
+                newVerts.push_back(c);
+
+                newIndices.push_back(base);
+                newIndices.push_back(base + 1);
+                newIndices.push_back(base + 2);
+            };
+
+            auto v1 = vertices[indices[j]];
+            auto v2 = vertices[indices[j + 1]];
+            auto v3 = vertices[indices[j + 2]];
+
+            auto m1 = midPoint(v1, v2);
+            auto m2 = midPoint(v2, v3);
+            auto m3 = midPoint(v1, v3);
+
+            addTriangle(v1, m1, m3);
+            addTriangle(m1, v2, m2);
+            addTriangle(m1, m2, m3);
+            addTriangle(m3, m2, v3);
         }
-
-        faces = std::move(newFaces);
+        vertices = newVerts;
+        indices = newIndices;
     }
 
-    // Build final vertex and index arrays.
-    // For a sphere the normal at each vertex == the vertex position (unit sphere).
-    // UVs are spherical -- u from longitude, v from latitude.
-    m_vertices.clear();
-    m_indices.clear();
-    m_vertices.reserve(positions.size());
+    m_vertices = vertices;
+    m_indices = indices;
 
-    for (const auto &p : positions)
-    {
-        const Vector3f scaled = p * m_radius;
-        const Vector3f normal = p; // already normalized
-        const Vector2f uv = {
-            0.5f + std::atan2(p.z, p.x) / (2.0f * PI),
-            0.5f - std::asin(p.y) / PI
-        };
-        m_vertices.push_back({scaled, normal, uv, m_color});
-    }
-
-    m_indices.reserve(faces.size() * 3);
-    for (const auto &f : faces)
-        m_indices.insert(m_indices.end(), 
-        {static_cast<uint16_t>(f[0]), 
-            static_cast<uint16_t>(f[1]),
-            static_cast<uint16_t>(f[2])});
 }
 
 

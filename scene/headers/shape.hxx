@@ -127,7 +127,7 @@ public:
         Core    &core,
         float    radius       = 0.5f,
         int      subdivisions = 3,
-        Vector3f color        = {0.7f, 0.7f, 0.9f});
+        Vector3f color        = {-1.0f, -1.0f, -1.0f});
 private:
     float    m_radius;
     int      m_subdivisions;

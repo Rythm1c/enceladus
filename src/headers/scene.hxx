@@ -53,7 +53,8 @@ public:
 
     // ---- Scene setup (called before run()) --------- -----
     void addFloor(float width, float height = 10.0f);
-    void addSphere(float x, float y, float z, float radius = 0.6f, int subDivisions = 3, float mass = 1.0f);
+    void addCubeSphere(float x, float y, float z, float radius = 0.6f, int subDivisions = 3, float mass = 1.0f);
+    void addIcoSphere(float x, float y, float z, float radius = 0.6f, int subDivisions = 3, float mass = 1.0f);
     void addBox(float x, float y, float z, float halfX = 0.5f, float halfY = 0.5f, float halfZ = 0.5f, float mass = 2.0f);
 
 private:
