@@ -27,8 +27,23 @@ struct LightUBO
     Vector4f direction        = { 0.5f, -1.0f, 0.5f, 0.0f }; // angled from top-right
     Vector4f color            = { 1.0f,  1.0f, 1.0f, 1.0f }; // white, full intensity
     Vector4f ambient          = { 0.15f, 0.15f, 0.2f, 0.0f }; // cool blue-tinted ambient
+    Vector4f cameraPos        = { 0.0f,  0.0f,  0.0f,  0.0f }; // w unused
     Mat4x4   lightSpaceMatrix = Mat4x4::identity();
 
 };
+
+struct MaterialUBO
+{
+    Vector4f albedo       = {1.0f, 1.0f, 1.0f, 1.0f};
+    float    roughness    = 0.5f;
+    float    metallic     = 0.0f;
+    float    ao           = 1.0f;
+    float    useChecker   = 1.0f;
+    Vector4f colorA       = {1.0f, 1.0f, 1.0f, 8.0f};
+    Vector4f colorB       = {0.1f, 0.1f, 0.1f, 1.0f};
+};
+
+static_assert(sizeof(MaterialUBO) == 64,
+    "MaterialUBO must be exactly 64 bytes -- check std140 alignment");
 
 #endif

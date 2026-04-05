@@ -16,16 +16,17 @@ layout(set = 0, binding = 0) uniform Camera {
     mat4 proj;
 } camera;
 
-layout(push_constant) uniform Model {
-    mat4 model;
-} push;
-
 layout(set = 0, binding = 1) uniform Light {
     vec4 direction;
     vec4 color;
     vec4 ambient;
     mat4 lightSpaceMatrix;
 } light;
+
+layout(push_constant) uniform PushConstants {
+    mat4  model;
+} push;
+
 
 void main()
 {

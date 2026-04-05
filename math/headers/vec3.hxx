@@ -21,7 +21,7 @@ struct Vector3f
       float g; // green
       float b; // blue
     };
-    float v[4];
+    float v[3];
   };
   /// @brief default constructor with components set to 0.0
   Vector3f() : x(0.0f), y(0.0f), z(0.0f) {}

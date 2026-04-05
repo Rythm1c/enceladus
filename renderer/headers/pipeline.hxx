@@ -18,7 +18,8 @@ struct PipelineConfig
     Shader                                        *vertShader            = nullptr;
     Shader                                        *fragShader            = nullptr; // may be nullptr for depthOnly
     VkPrimitiveTopology                            topology              = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    VkDescriptorSetLayout                          descriptorSetLayout   = VK_NULL_HANDLE;
+    VkDescriptorSetLayout                          globalDescLayout      = VK_NULL_HANDLE;
+    VkDescriptorSetLayout                          materialDescLayout    = VK_NULL_HANDLE;
     bool                                           wireframe             = false;
     bool                                           depthOnly             = false; // mostly for shadow map pipelines
     std::vector<VkVertexInputBindingDescription>   bindingDescriptions;

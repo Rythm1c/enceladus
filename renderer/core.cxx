@@ -98,10 +98,6 @@ void Core::createInstance(SDL_Window *window)
     {
         std::cerr << "Failed to create Vulkan instance" << std::endl;
     }
-    else
-    {
-        std::cout << "Vulkan instance created successfully" << std::endl;
-    }
 }
 
 void Core::setupDebugMessenger()
@@ -187,10 +183,6 @@ void Core::createLogicalDevice()
     {
         throw std::runtime_error("failed to create logical device!");
     }
-    else
-    {
-        std::cout << "Logical device created successfully" << std::endl;
-    }
 
     vkGetDeviceQueue(m_device, m_queueFamilyIndices.graphicsFamily.value(), 0, &m_graphicsQueue);
     vkGetDeviceQueue(m_device, m_queueFamilyIndices.presentFamily.value(), 0, &m_presentQueue);
@@ -201,10 +193,6 @@ void Core::createSurface(SDL_Window *window)
     if (!SDL_Vulkan_CreateSurface(window, m_instance, &m_surface))
     {
         std::cerr << "Failed to create Vulkan surface: " << SDL_GetError() << std::endl;
-    }
-    else
-    {
-        std::cout << "Vulkan surface created successfully" << std::endl;
     }
 }
 

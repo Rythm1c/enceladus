@@ -121,12 +121,14 @@ Pipeline::Pipeline(PipelineConfig &config)
     colorBlending.attachmentCount = 1;
     colorBlending.pAttachments    = &colorBlendAttachment;
 
-    const bool hasDescriptorLayout = (config.descriptorSetLayout != VK_NULL_HANDLE);
+    std::vector<VkDescriptorSetLayout> setLayouts;
+    if (config.globalDescLayout   != VK_NULL_HANDLE) setLayouts.push_back(config.globalDescLayout);
+    if (config.materialDescLayout != VK_NULL_HANDLE) setLayouts.push_back(config.materialDescLayout);
 
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    layoutInfo.setLayoutCount         = hasDescriptorLayout ? 1 : 0;
-    layoutInfo.pSetLayouts            = hasDescriptorLayout ? &config.descriptorSetLayout : nullptr;
+    layoutInfo.setLayoutCount         = static_cast<uint32_t>(setLayouts.size());
+    layoutInfo.pSetLayouts            = setLayouts.empty() ? nullptr : setLayouts.data();
     layoutInfo.pushConstantRangeCount = static_cast<uint32_t>(config.pushConstantRanges.size());
     layoutInfo.pPushConstantRanges    = config.pushConstantRanges.empty() ? nullptr : config.pushConstantRanges.data();
 
@@ -166,7 +168,6 @@ Pipeline::Pipeline(PipelineConfig &config)
         throw std::runtime_error("failed to create graphics pipeline!");
     }
 
-    std::cout << "Pipeline created successfully" << std::endl;
 }
 
 Pipeline::~Pipeline()

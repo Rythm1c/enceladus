@@ -7,16 +7,7 @@ A cross-platform C++ project for developing with Vulkan and SDL2 using CMake.
 - **Vulkan Graphics Rendering**: High-performance 3D graphics using Vulkan API
 - **SDL2 Windowing**: Cross-platform window management and input handling
 - **3D Camera System**: FPS-style camera with WASD movement, mouse look, and vertical controls (E/Q)
-- **Renderable Shapes**: Triangle and Cube primitives with customizable colors
-- **Per-Face Cube Coloring**: Each face of the cube has a distinct color for visual clarity
-- **Depth Testing**: Proper 3D rendering with depth buffer and backface culling
 - **Shadow Mapping**: Real-time shadows with Percentage Closer Filtering (PCF) for soft shadow edges
-- **Shader Pipeline**: Custom vertex and fragment shaders for rendering
-- **Matrix Transformations**: Model-view-projection matrices for 3D transformations
-- **Push Constants**: Efficient per-object data passing to shaders
-- **Descriptor Sets**: Camera uniform buffers for view and projection matrices
-- **Indexed Drawing**: Optimized rendering using vertex and index buffers
-- **Lighting System**: Directional lighting with ambient and diffuse components
 
 ![Sample Render](samples/preview.png)
 

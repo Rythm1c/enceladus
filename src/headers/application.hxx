@@ -10,7 +10,8 @@ class Swapchain;
 class RenderPass;
 class Renderer;
 class Pipeline;
-class Descriptor;
+class GlobalDescriptor;
+class MaterialDescriptor;
 class ShadowMap;
 class Scene;
 
@@ -65,14 +66,15 @@ private:
     int m_mouseX = 0, m_mouseY = 0;
 
     // Graphics pipeline (initialized in order)
-    std::unique_ptr<Core>       m_core;
-    std::unique_ptr<Swapchain>  m_swapchain;
-    std::unique_ptr<RenderPass> m_renderPass;
-    std::unique_ptr<ShadowMap>  m_shadowMap;
-    std::unique_ptr<Descriptor> m_descriptor;
-    std::unique_ptr<Pipeline>   m_pipeline;
-    std::unique_ptr<Pipeline>   m_wireframePipeline;
-    std::unique_ptr<Renderer>   m_renderer;
+    std::unique_ptr<Core>               m_core;
+    std::unique_ptr<Swapchain>          m_swapchain;
+    std::unique_ptr<RenderPass>         m_renderPass;
+    std::unique_ptr<ShadowMap>          m_shadowMap;
+    std::unique_ptr<GlobalDescriptor>   m_globalDescriptor;
+    std::unique_ptr<MaterialDescriptor> m_materialDescriptor;
+    std::unique_ptr<Pipeline>           m_pipeline;
+    std::unique_ptr<Pipeline>           m_wireframePipeline;
+    std::unique_ptr<Renderer>           m_renderer;
 
     // Initialization helpers
     void initializeSDL(const std::string &title);

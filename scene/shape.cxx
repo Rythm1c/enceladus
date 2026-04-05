@@ -45,37 +45,17 @@ void Shape::upload()
     }
 }
 
-const Drawable Shape::getDrawData() const
+Drawable Shape::getDrawData()
 {
     return Drawable{
         .vertexBuffer     = m_vertexBuffer.get(),
         .indexBuffer      = m_indexBuffer.get(),   // VK_NULL_HANDLE if none
         .vertexCount      = static_cast<uint32_t>(m_vertices.size()),
         .indexCount       = static_cast<uint32_t>(m_indices.size()),
+        .material         = m_material.toUBO(),
         .model            = getModel()
     };
 }
-
-/* void Shape::draw(VkCommandBuffer cmd, VkPipelineLayout layout) const
-{
-    assert(m_vertexBuffer.isCreated() && "Shape::draw called before upload(). Call shape.upload() after construction.");
-
-    // Bind the vertex buffer
-    VkBuffer buffers[] = {m_vertexBuffer.get()};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(cmd, 0, 1, buffers, offsets);
-
-    if(!m_indices.empty())
-    {
-        vkCmdBindIndexBuffer(cmd, m_indexBuffer.get(), 0, VK_INDEX_TYPE_UINT16);
-
-        vkCmdDrawIndexed(cmd, static_cast<uint32_t>(m_indices.size()), 1, 0, 0, 0);
-    }
-    else
-    {
-    vkCmdDraw(cmd, static_cast<uint32_t>(m_vertices.size()), 1, 0, 0);
-    }
-} */
 
 void Shape::setPosition(Vector3f translation)
 {
@@ -140,12 +120,12 @@ void Cube::buildGeometry()
 
     // Per-face colours (used when m_color == {-1,-1,-1})
     const std::array<Vector3f, 6> faceColors = {{
-        {9.0f, 2.0f, 3.0f},  // +X  red
-        {0.2f, 0.3f, 8.0f},  // -X  blue
-        {0.3f, 0.8f, 1.0f},  // +Y  green
+        {0.9f, 0.2f, 0.3f},  // +X  red
+        {0.2f, 0.3f, 0.8f},  // -X  blue
+        {0.3f, 0.8f, 0.1f},  // +Y  green
         {0.9f, 0.8f, 0.1f},  // -Y  yellow
         {0.7f, 0.0f, 0.9f},  // +Z  orange
-        {0.2f, 8.0f, 0.9f},  // -Z  purple
+        {0.2f, 0.8f, 0.9f},  // -Z  purple
     }};
 
     const bool useUniform = (m_color.x >= 0.0f);
@@ -216,13 +196,13 @@ void CubeSphere::buildGeometry()
 {
 
     // Per-face colours (used when m_color == {-1,-1,-1})
-    std::array<Vector3f, 6> faceColors = {{
-        {9.0f, 2.0f, 3.0f},  // +X  red
-        {0.2f, 0.3f, 8.0f},  // -X  blue
-        {0.3f, 0.8f, 1.0f},  // +Y  green
+    std::array<Vector3f, 2> faceColors = {{
+        {0.9f, 0.1f, 0.2f},  // +X  red
+        //{0.2f, 0.3f, 0.8f},  // -X  blue
+        //{0.3f, 0.8f, 0.1f},  // +Y  green
         {0.9f, 0.8f, 0.1f},  // -Y  yellow
-        {0.7f, 0.0f, 0.9f},  // +Z  orange
-        {0.2f, 8.0f, 0.9f},  // -Z  purple
+        //{0.7f, 0.0f, 0.9f},  // +Z  orange
+        //{0.2f, 0.8f, 0.9f},  // -Z  purple
     }};
 
     if (m_color.x > 0.0f)
@@ -237,7 +217,7 @@ void CubeSphere::buildGeometry()
     // |__|__|__|  <- square with three divisions 
     // |__|__|__|
     // ___ params _____________________________________
-    // start     : starting point. Has to be the top-left corner of each face because of the uv is calculated
+    // start     : starting point. Has to be the top-left corner of each face because of the the way the uv is calculated
     // latitude  : a direction vector sweeping along the latitude of the surface 
     // longitude : a direction vector sweeping along the longitude of the surface
     // color     : self explanatory
@@ -278,15 +258,15 @@ void CubeSphere::buildGeometry()
         // +Z face
         subDivideFace({-1.0, 1.0, 1.0}, {step , 0.0, 0.0}, {0.0,-step, 0.0}, faceColors[0]),
         // -Z face
-        subDivideFace({1.0, 1.0,-1.0},  {-step, 0.0, 0.0}, {0.0,-step, 0.0}, faceColors[1]),
+        subDivideFace({1.0, 1.0,-1.0},  {-step, 0.0, 0.0}, {0.0,-step, 0.0}, faceColors[0]),
         // +Y face
-        subDivideFace({-1.0, 1.0,-1.0}, {step , 0.0, 0.0}, {0.0, 0.0, step}, faceColors[2]),
+        subDivideFace({-1.0, 1.0,-1.0}, {step , 0.0, 0.0}, {0.0, 0.0, step}, faceColors[1]),
         // -Y face
-        subDivideFace({1.0,-1.0,-1.0},  {-step, 0.0, 0.0}, {0.0, 0.0, step}, faceColors[3]),
+        subDivideFace({1.0,-1.0,-1.0},  {-step, 0.0, 0.0}, {0.0, 0.0, step}, faceColors[1]),
         // +X face
-        subDivideFace({1.0, 1.0, 1.0},  {0.0, 0.0,-step},  {0.0,-step, 0.0}, faceColors[4]),
+        subDivideFace({1.0, 1.0, 1.0},  {0.0, 0.0,-step},  {0.0,-step, 0.0}, faceColors[1]),
         // -X face
-        subDivideFace({-1.0, 1.0,-1.0}, {0.0, 0.0, step},  {0.0,-step, 0.0}, faceColors[5])
+        subDivideFace({-1.0, 1.0,-1.0}, {0.0, 0.0, step},  {0.0,-step, 0.0}, faceColors[1])
     
     };
 
@@ -423,10 +403,11 @@ void Icosphere::buildGeometry()
         Vector3f mid = ((a.pos + b.pos) * 0.5f).unit() * m_radius;
         Vector2f uv  = (a.uv  + b.uv)  * 0.5f;
 
-        return Vertex3D{.pos    = mid,
-                        .normal = mid,
-                        .uv     = uv,
-                        .col    = m_color,
+        return Vertex3D{
+            .pos    = mid,
+            .normal = mid,
+            .uv     = uv,
+            .col    = m_color,
         };
     };
 

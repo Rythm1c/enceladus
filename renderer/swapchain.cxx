@@ -87,10 +87,6 @@ void Swapchain::createSwapchain(SDL_Window *window)
     {
         std::runtime_error("Failed to create swapchain");
     }
-    else
-    {
-        std::cout << "swapchain created successfully" << std::endl;
-    }
 
     vkGetSwapchainImagesKHR(device, m_handle, &imageCount, nullptr);
     m_images.resize(imageCount);
@@ -127,7 +123,6 @@ void Swapchain::createImageViews()
         }
     }
 
-    std::cout << "Swapchain image views created successfully" << std::endl;
 }
 void Swapchain::createDepthBuffer()
 {
@@ -142,7 +137,6 @@ void Swapchain::createDepthBuffer()
     config.memoryProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
     m_depthBuffer = std::make_unique<Texture>(m_core, config);
-    std::cout << "Depth buffer created\n";
 }
 
 VkFormat Swapchain::findDepthFormat()

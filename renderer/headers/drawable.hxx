@@ -3,13 +3,15 @@
 
 #include <vulkan/vulkan.h>
 #include "../../math/headers/mat4.hxx"
+#include "material.hxx"
 
 struct Drawable{
-    VkBuffer     vertexBuffer;
-    VkBuffer     indexBuffer;   // VK_NULL_HANDLE if none
-    uint32_t     vertexCount;
-    uint32_t     indexCount;
-    Mat4x4       model;
+    VkBuffer           vertexBuffer;
+    VkBuffer           indexBuffer;   // VK_NULL_HANDLE if none
+    uint32_t           vertexCount;
+    uint32_t           indexCount;
+    MaterialUBO        material;
+    Mat4x4             model;
 };
 
 #endif

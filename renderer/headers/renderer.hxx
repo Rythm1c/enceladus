@@ -8,7 +8,8 @@
 class Core;
 class Pipeline;
 class Shape;
-class Descriptor;
+class GlobalDescriptor;
+class MaterialDescriptor;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -19,15 +20,17 @@ struct RendererConfig
     VkExtent2D                      swapChainExtent;
     const std::vector<VkImageView> &swapChainImageViews;
     VkImageView                     depthImageView;
-    Descriptor                     &descriptor;  // for per-frame UBO update + bind
+    GlobalDescriptor                &globalDescriptor;  // for per-frame UBO update + bind
+    MaterialDescriptor              &materialDescriptor;  // for per-frame UBO update + bind
 
 };
 
 class Renderer
 {
 private:
-    Core                         &m_core;
-    Descriptor                   &m_descriptor;
+    Core                        &m_core;
+    GlobalDescriptor            &m_globalDescriptor;  // for per-frame UBO update + bind
+    MaterialDescriptor          &m_materialDescriptor;  // for per-frame UBO update + bind
     VkRenderPass                 m_renderPass    = VK_NULL_HANDLE;
     uint32_t                     m_currentFrame  = 0;
     VkCommandPool                m_commandPool   = VK_NULL_HANDLE;
@@ -73,13 +76,18 @@ public:
     void bindPipeline(const Pipeline &pipeline);
 
     /**
-     * Updates the UBO for the current frame and binds the descriptor set.
-     * Call this once per frame after bindPipeline() and before any drawShape().
-     *
-     * @param ubo    Fresh camera data produced by Camera::getUBO().
-     * @param layout The pipeline layout (needed by vkCmdBindDescriptorSets).
+     * Bind the global descriptor set (set 0): camera + light + shadow map.
+     * Call ONCE per frame after binding a pipeline, before any draw calls.
+     * Updates the camera and light UBOs then records vkCmdBindDescriptorSets.
      */
-    void bindDescriptors(const struct CameraUBO &ubo, const struct LightUBO &light, VkPipelineLayout layout);
+    void bindGlobalDescriptors(const struct CameraUBO &camera, const struct LightUBO &light, VkPipelineLayout layout);
+
+    /**
+     * Update the material UBO and bind the material descriptor set (set 1).
+     * Call once per shape, immediately before drawShape().
+     * Only writes to the material buffer -- camera and light are untouched.
+     */
+    void bindMaterial(const struct MaterialUBO &material, VkPipelineLayout layout);
 
     // Records draw commands for a shape (binds VBO, pushes constants, draws).
     void draw(const struct Drawable &drawable, const Pipeline &pipeline);

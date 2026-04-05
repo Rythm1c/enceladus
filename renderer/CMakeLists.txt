@@ -5,7 +5,7 @@
 add_library(enceladus_renderer STATIC
     buffer.cxx
     core.cxx
-    descriptor.cxx
+    descriptors.cxx
     pipeline.cxx
     renderer.cxx
     renderpass.cxx

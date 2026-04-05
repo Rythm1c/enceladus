@@ -6,6 +6,7 @@
 #include "../../renderer/headers/buffer.hxx"
 #include "../../renderer/headers/vertex.hxx"
 #include "../../renderer/headers/drawable.hxx"
+#include "../../renderer/headers/material.hxx"
 
 #include "../../math/headers/vec2.hxx"
 #include "../../math/headers/vec3.hxx"
@@ -43,7 +44,7 @@ public:
      */
     //void draw(VkCommandBuffer cmd, VkPipelineLayout layout) const;
 
-    const Drawable getDrawData() const;
+    Drawable getDrawData();
 
     // ---- Transform ----------------------------------------------------------
     void setPosition(Vector3f translation);
@@ -53,13 +54,29 @@ public:
     void setTransform(const Transform &t);
 
     // converted to column major automatically so don't call it again
-    Mat4x4 getModel() const { return m_model.toMat4x4().transpose(); }
+    Mat4x4 getModel() { return m_model.toMat4x4().transpose(); }
+
+    // ---- Material ----------------------------------------------------------
+    void setMaterial(const Material &mat)
+    {
+        m_material = mat;
+    }
+
+    const Material &getMaterial() const { return m_material; }
+
+    // Convenience
+    void setColor(Vector3f color)
+    {
+        m_material.albedo = color;
+        m_material.colorA = color;
+    }
 
 protected:
     Core                 &m_core;
     Buffer                m_vertexBuffer;
     Buffer                m_indexBuffer;
     Transform             m_model;
+    Material              m_material;
     std::vector<Vertex3D> m_vertices;  // filled by buildGeometry()
     std::vector<uint16_t> m_indices;
 
@@ -127,7 +144,7 @@ public:
         Core    &core,
         float    radius       = 0.5f,
         int      subdivisions = 3,
-        Vector3f color        = {-1.0f, -1.0f, -1.0f});
+        Vector3f color        = {0.8f, 0.1f, 0.2f});
 private:
     float    m_radius;
     int      m_subdivisions;

@@ -78,10 +78,6 @@ RenderPass::RenderPass(Core &core, VkFormat colorFormat, VkFormat depthFormat)
     {
         throw std::runtime_error("failed to create render pass!");
     }
-    else
-    {
-        std::cout << "Render pass created successfully" << std::endl;
-    }
 }
 
 RenderPass::~RenderPass()

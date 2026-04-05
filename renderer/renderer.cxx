@@ -3,7 +3,7 @@
 #include "headers/pipeline.hxx"
 #include "headers/utils.hxx"
 #include "headers/drawable.hxx"
-#include "headers/descriptor.hxx"
+#include "headers/descriptors.hxx"
 #include "headers/ubo.hxx"
 #include <stdexcept>
 #include <array>
@@ -11,7 +11,8 @@
 
 Renderer::Renderer(RendererConfig &config)
     : m_core(config.core),
-      m_descriptor(config.descriptor),
+      m_globalDescriptor(config.globalDescriptor),
+      m_materialDescriptor(config.materialDescriptor),
       m_renderPass(config.renderPass)
 
 {
@@ -109,27 +110,29 @@ void Renderer::bindPipeline(const Pipeline &pipeline)
 }
 
 
-void Renderer::bindDescriptors(const CameraUBO &camera, const LightUBO &light, VkPipelineLayout layout)
+void Renderer::bindGlobalDescriptors(const CameraUBO &camera, const LightUBO &light, VkPipelineLayout layout)
 {
-    // 1. Write fresh camera matrices into the UBO buffer for this frame.
-    m_descriptor.updateCamera(m_currentFrame, camera);
-    m_descriptor.updateLight (m_currentFrame, light);
+    m_globalDescriptor.updateCamera(m_currentFrame, camera);
+    m_globalDescriptor.updateLight (m_currentFrame, light);
 
-    // 2. Bind the descriptor set so the shader can read the UBO.
-    //
-    // vkCmdBindDescriptorSets arguments:
-    //   pipelineBindPoint → GRAPHICS (not compute)
-    //   layout            → the pipeline layout that declares set 0
-    //   firstSet = 0      → we are binding set 0 (matches `set = 0` in GLSL)
-    //   descriptorSetCount = 1
-    //   pDescriptorSets   → the set for this frame
-    //   dynamicOffsetCount = 0  → no dynamic offsets
-    VkDescriptorSet set = m_descriptor.getSet(m_currentFrame);
+    VkDescriptorSet globalSet = m_globalDescriptor.getSet(m_currentFrame);
     vkCmdBindDescriptorSets(
         m_commandBuffers[m_currentFrame],
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         layout,
-        0, 1, &set,
+        0, 1, &globalSet,
+        0, nullptr);
+}
+
+void Renderer::bindMaterial(const MaterialUBO &material, VkPipelineLayout layout)
+{
+    m_materialDescriptor.update(m_currentFrame, material);
+    VkDescriptorSet matSet = m_materialDescriptor.getSet(m_currentFrame);
+    vkCmdBindDescriptorSets(
+        m_commandBuffers[m_currentFrame],
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        layout,
+        1, 1, &matSet,
         0, nullptr);
 }
 
@@ -235,7 +238,6 @@ void Renderer::createFramebuffers(VkRenderPass renderPass, VkExtent2D extent, co
             throw std::runtime_error("Renderer: vkCreateFramebuffer failed!");
     }
 
-    std::cout << "Framebuffers created successfully" << std::endl;
 }
 
 void Renderer::createCommandPool(uint32_t graphicsQueueFamilyIndex)
@@ -247,8 +249,7 @@ void Renderer::createCommandPool(uint32_t graphicsQueueFamilyIndex)
 
     if (vkCreateCommandPool(m_core.getDevice(), &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS)
         throw std::runtime_error("Renderer: vkCreateCommandPool failed!");
-    else
-        std::cout << "Command pool created successfully" << std::endl;
+    
 }
 
 void Renderer::createCommandBuffers()
@@ -263,13 +264,10 @@ void Renderer::createCommandBuffers()
 
     if (vkAllocateCommandBuffers(m_core.getDevice(), &allocInfo, m_commandBuffers.data()) != VK_SUCCESS)
         throw std::runtime_error("Renderer: vkAllocateCommandBuffers failed!");
-    else
-        std::cout << "Command buffer allocated successfully" << std::endl;
 }
 
 void Renderer::createSyncObjects()
 {
-
     m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
@@ -293,5 +291,4 @@ void Renderer::createSyncObjects()
         }
     }
 
-    std::cout << "Synchronization objects created successfully" << std::endl;
 }

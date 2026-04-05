@@ -38,7 +38,7 @@ void Scene::initializePhysics()
 void Scene::initializeLight()
 {
     m_light.direction = {0.6f, -1.0f, 0.4f, 0.0f};  // angled sun
-    m_light.color     = {1.0f,  0.95f, 0.85f, 1.0f}; // warm white
+    m_light.color     = {1.0f,  0.95f, 0.85f, 4.0f}; // warm white
     m_light.ambient   = {0.1f,  0.1f,  0.15f, 0.0f}; // cool ambient
 }
 
@@ -131,6 +131,9 @@ void Scene::addBox(float x, float y, float z, float halfX, float halfY, float ha
 void Scene::update(float deltaTime, float aspect)
 {
     m_camera->setAspect(aspect);
+
+    Vector3f camPos   = m_camera->getPosition();
+    m_light.cameraPos = Vector4f(camPos.x, camPos.y, camPos.z, 1.0f);
     // Update physics
     // m_physicsWorld->step(deltaTime);
     
