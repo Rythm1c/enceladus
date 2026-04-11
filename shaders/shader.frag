@@ -35,9 +35,9 @@ layout(set = 1, binding = 0) uniform Material {
     float roughness;   // 0 = mirror, 1 = completely diffuse
     float metallic;    // 0 = dielectric (plastic/stone), 1 = metal
     float ao;          // ambient occlusion (1.0 = no occlusion)
-    float useChecker;   // 0.0=solid, 1.0=checker
-    vec4  colorA;       // xyz=checker colour A, w=checkerScale
-    vec4  colorB;       // xyz=checker colour B, w=unused
+    float useChecker;  // 0.0=solid, 1.0=checker
+    vec4  colorA;      // xyz=checker colour A, w=checkerScale
+    vec4  colorB;      // xyz=checker colour B, w=unused
 } mat;
 
 // ============================================================================
@@ -52,20 +52,35 @@ vec3 checkerboard(vec2 uv)
 
 float shadowPCF(vec4 lightSpacePos)
 {
+     // Perspective divide: convert from clip space to NDC [-1,1]
     vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w;
-    projCoords.xy   = projCoords.xy * 0.5 + 0.5;
 
+    // Remap XY from [-1,1] to [0,1] for texture lookup.
+    // Z is already in [0,1] for Vulkan (unlike OpenGL which needs *0.5+0.5).
+    projCoords.xy = projCoords.xy * 0.5 + 0.5;
+
+    // Fragments outside the light frustum should not be shadowed.
+    // The sampler's CLAMP_TO_BORDER + white border handles this for XY,
+    // but we also guard Z explicitly.
     if (projCoords.z > 1.0) return 1.0;
 
-    float shadow    = 0.0;
+    float shadow   = 0.0;
     vec2  texelSize = 1.0 / textureSize(shadowMap, 0);
 
+    // 3x3 PCF kernel -- 9 samples
     for (int x = -1; x <= 1; ++x)
+    {
         for (int y = -1; y <= 1; ++y)
-            shadow += texture(shadowMap,
-                vec3(projCoords.xy + vec2(x,y) * texelSize, projCoords.z));
+        {
+            vec2 offset    = vec2(x, y) * texelSize;
+            // texture() with sampler2DShadow compares projCoords.z against
+            // the stored depth at (projCoords.xy + offset).
+            // Returns 1.0 if stored >= projCoords.z (lit), 0.0 if shadowed.
+            shadow += texture(shadowMap, vec3(projCoords.xy + offset, projCoords.z));
+        }
+    }
 
-    return shadow / 9.0;
+    return shadow / 9.0; // average the 9 samples
 }
 
 float distributionGGX(vec3 N, vec3 H, float roughness)
@@ -95,7 +110,7 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 float geometrySmith(float NdotL, float NdotV, float roughness)
 {
     return geometrySchlickGGX(NdotL, roughness)
-         * geometrySchlickGGX(NdotV, roughness);
+        * geometrySchlickGGX(NdotV, roughness);
 }
 
 void main()
@@ -143,7 +158,7 @@ void main()
     // (integral of cos(theta) over hemisphere = PI).
     vec3 diffuse = kd * albedo / 3.14159265;
 
-    // ---- Incoming radiance -------------------------------------------------
+    // ---- Incoming radiance ---------------------clearclea----------------------------
     vec3 Li = light.color.xyz * light.color.w;
 
     // ---- Shadow ------------------------------------------------------------
@@ -169,12 +184,12 @@ void main()
     // Reinhard tone mapping: compresses HDR values to [0,1] range.
     // Without this, bright specular highlights blow out to pure white.
     // color / (color + 1) maps 0->0, 0.5->0.33, 1->0.5, inf->1
-    color = color / (color + vec3(1.0));
+    //color = color / (color + vec3(1.0));
 
     // Gamma correction: convert from linear to sRGB (gamma 2.2 approximated
     // by the common 1/2.2 power). Monitors expect sRGB output.
     // Without this, colours look washed out and overly bright.
-    color = pow(color, vec3(1.0 / 2.2));
+    //color = pow(color, vec3(1.0 / 2.2));
 
     outColor = vec4(color, 1.0);
 }

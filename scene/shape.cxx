@@ -52,8 +52,8 @@ Drawable Shape::getDrawData()
         .indexBuffer      = m_indexBuffer.get(),   // VK_NULL_HANDLE if none
         .vertexCount      = static_cast<uint32_t>(m_vertices.size()),
         .indexCount       = static_cast<uint32_t>(m_indices.size()),
+        .model            = getModel(),
         .material         = m_material.toUBO(),
-        .model            = getModel()
     };
 }
 
@@ -77,7 +77,6 @@ void Shape::setTransform(const Transform &t)
     m_model = t;
 }
 
-
 // =============================================================================
 // Triangle
 // =============================================================================
@@ -93,9 +92,7 @@ Triangle::Triangle(
       m_size(size),
       m_colorA(colorA),
       m_colorB(colorB),
-      m_colorC(colorC)
-{
-}
+      m_colorC(colorC) {}
 
 void Triangle::buildGeometry()
 {
@@ -112,7 +109,6 @@ void Triangle::buildGeometry()
         Vertex3D{{m_size, -m_size, 1.0},{0.0, 0.0, 1.0},{0.0, 1.0}, m_colorC}, // bottom right
     };
 }
-
 
 void Cube::buildGeometry()
 {
@@ -175,7 +171,8 @@ void Cube::buildGeometry()
 
         // Two triangles per face (CCW winding): 0-1-2 and 0-2-3
         m_indices.insert(m_indices.end(),
-            { static_cast<uint16_t>(base+0), static_cast<uint16_t>(base+1), static_cast<uint16_t>(base+2),
+            {
+                static_cast<uint16_t>(base+0), static_cast<uint16_t>(base+1), static_cast<uint16_t>(base+2),
                 static_cast<uint16_t>(base+0), static_cast<uint16_t>(base+2), static_cast<uint16_t>(base+3)});
     }
 }
@@ -196,13 +193,10 @@ void CubeSphere::buildGeometry()
 {
 
     // Per-face colours (used when m_color == {-1,-1,-1})
-    std::array<Vector3f, 2> faceColors = {{
-        {0.9f, 0.1f, 0.2f},  // +X  red
-        //{0.2f, 0.3f, 0.8f},  // -X  blue
-        //{0.3f, 0.8f, 0.1f},  // +Y  green
-        {0.9f, 0.8f, 0.1f},  // -Y  yellow
-        //{0.7f, 0.0f, 0.9f},  // +Z  orange
-        //{0.2f, 0.8f, 0.9f},  // -Z  purple
+    std::array<Vector3f, 3> faceColors = {{
+        {0.9f, 0.1f, 0.2f},  //  red
+        {0.2f, 0.3f, 0.8f},  //  blue
+        {0.9f, 0.8f, 0.1f},  //  yellow
     }};
 
     if (m_color.x > 0.0f)
@@ -237,12 +231,12 @@ void CubeSphere::buildGeometry()
                 // Use cube-to-sphere projection: normalize, then adjust by sqrt(1 + x²/2 + y²/2)
                 // This reduces area distortion at cube corners compared to simple normalization
                 Vector3f normalized = position.unit();
-                float factor = std::sqrt(1.0f + normalized.x * normalized.x * 0.5f + normalized.y * normalized.y * 0.5f);
-                Vector3f adjusted = normalized * (1.0f / factor);
+                /* float factor = std::sqrt(1.0f + normalized.x * normalized.x * 0.5f + normalized.y * normalized.y * 0.5f);
+                Vector3f adjusted = normalized * (1.0f / factor); */
 
                 vertices.push_back(Vertex3D{
-                    .pos    = adjusted * m_radius,
-                    .normal = adjusted,
+                    .pos    = normalized * m_radius,
+                    .normal = normalized,
                     .uv     = {u, v},
                     .col    = color,
                 });
@@ -264,9 +258,9 @@ void CubeSphere::buildGeometry()
         // -Y face
         subDivideFace({1.0,-1.0,-1.0},  {-step, 0.0, 0.0}, {0.0, 0.0, step}, faceColors[1]),
         // +X face
-        subDivideFace({1.0, 1.0, 1.0},  {0.0, 0.0,-step},  {0.0,-step, 0.0}, faceColors[1]),
+        subDivideFace({1.0, 1.0, 1.0},  {0.0, 0.0,-step},  {0.0,-step, 0.0}, faceColors[2]),
         // -X face
-        subDivideFace({-1.0, 1.0,-1.0}, {0.0, 0.0, step},  {0.0,-step, 0.0}, faceColors[1])
+        subDivideFace({-1.0, 1.0,-1.0}, {0.0, 0.0, step},  {0.0,-step, 0.0}, faceColors[2])
     
     };
 
@@ -304,160 +298,219 @@ void CubeSphere::buildGeometry()
 }
 
 Icosphere::Icosphere(Core &core, float radius, int subdivisions, Vector3f color)
-    : Shape(core), m_radius(radius), m_subdivisions(subdivisions), m_color(color)
-{}
+    : Shape(core), m_radius(radius), m_subdivisions(subdivisions), m_color(color) {}
+
 void Icosphere::buildGeometry()
 {
     // Start with a regular icosahedron.
     // The golden ratio phi appears naturally in the coordinates of an icosahedron.
-    const float v_angle = std::atan(0.5f);// ~26.565° angle from the Y axis to the second ring of vertices  
-    const float h_angle = to_radians(72.0f);
+    const float v_angle  = std::atan(0.5f);  // ~26.565 degrees -- icosahedron geometry
+    const float h_step   = 2.0f * PI / 5.0f; // 72 degrees between vertices
 
-    std::vector<Vertex3D> vertices;
-    //top vertices(5 because of uv mappping)
-    for(int i = 0; i < 5; ++i)
+    // sin/cos of the vertical angle -- same for all belt vertices
+    const float sinV = std::sin(v_angle);   //  0.4472 (y coordinate of upper belt)
+    const float cosV = std::cos(v_angle);   //  0.8944 (xz radius of belt vertices)
+
+    std::vector<Vertex3D>  vertices;
+    std::vector<uint32_t>  indices;
+
+    // Vertex counts per ring (6 each, not 5, for UV seam)
+    // Ring indices:
+    //   Ring 0 (top    poles):  0..5
+    //   Ring 1 (upper  belt):   6..11
+    //   Ring 2 (lower  belt):  12..17
+    //   Ring 3 (bottom poles): 18..23
+
+    // ---- Ring 0: top pole duplicates (y=1, all same 3D position) ----------
+    // Each triangle that touches the top pole needs its own vertex with the
+    // correct U coordinate for that triangle's centroid, otherwise all top
+    // triangles share U=0 and the texture collapses to a point.
+    for (int i = 0; i < 6; ++i)
     {
-        float theta = i * h_angle;
-        float y = std::sin(3.0f * v_angle);
+        float u = float(i) / 5.0f;
         vertices.push_back(Vertex3D{
-            .pos    = {0.0f,    y, 0.0f},
+            .pos    = {0.0f, m_radius, 0.0f},  // exactly at north pole
             .normal = {0.0f, 1.0f, 0.0f},
-            .uv     = {float(i) / 4.0f, 1.0f},
+            .uv     = {u + 0.1f, 1.0f},         // offset by half-triangle width so
+                                                // the U sits at the triangle centre
             .col    = m_color,
         });
     }
-    // second ring vertices
-    for (int i = 0; i < 5; ++i)
+
+    // ---- Ring 1: upper belt (y = sin(v_angle)) -----------------------------
+    for (int i = 0; i < 6; ++i)
     {
-        float theta = i * h_angle;
-        float x = std::cos(theta) * std::cos(v_angle);
-        float z = std::sin(theta) * std::cos(v_angle);
-        float y = std::sin(v_angle);
+        float theta = i * h_step;
+        float x     = std::cos(theta) * cosV;
+        float z     = std::sin(theta) * cosV;
+        float y     = sinV;
+
+        // Normalize to unit sphere then scale by radius
+        Vector3f p   = Vector3f(x, y, z); // already unit length for icosahedron
+        Vector3f pos = p * m_radius;
+
         vertices.push_back(Vertex3D{
-            .pos    = {x, y, z},
-            .normal = {x, y, z},
-            .uv     = {float(i) / 4.0f, 0.75f},
+            .pos    = pos,
+            .normal = p,                         // unit direction = correct normal on sphere
+            .uv     = {float(i) / 5.0f, 0.75f},
             .col    = m_color,
         });
     }
-    //third ring vertices
-    for (int i = 0; i < 5; ++i)
+
+    // ---- Ring 2: lower belt (y = -sin(v_angle)), rotated 36 degrees --------
+    // The lower belt is offset by half a step (36 degrees) relative to the upper
+    // belt -- this is the defining geometry of an icosahedron.
+    for (int i = 0; i < 6; ++i)
     {
-        float theta = (i + 0.5f) * h_angle;
-        float x = std::cos(theta) * std::cos(v_angle);
-        float z = std::sin(theta) * std::cos(v_angle);
-        float y = std::sin(-v_angle);
+        float theta = (float(i) + 0.5f) * h_step; // 36-degree offset
+        float x     = std::cos(theta) * cosV;
+        float z     = std::sin(theta) * cosV;
+        float y     = -sinV;
+
+        Vector3f p   = Vector3f(x, y, z);
+        Vector3f pos = p * m_radius;
+
         vertices.push_back(Vertex3D{
-            .pos    = {x, y, z},
-            .normal = {x, y, z},
-            .uv     = {(float(i) + 0.5f) / 4.0f, 0.25f},
+            .pos    = pos,
+            .normal = p,
+            .uv     = {(float(i) + 0.5f) / 5.0f, 0.25f},
             .col    = m_color,
         });
     }
-    // bottom vertices(5 because of uv mappping)
-    for(int i = 0; i < 5; ++i)
+
+    // ---- Ring 3: bottom pole duplicates (y=-1, all same 3D position) -------
+    for (int i = 0; i < 6; ++i)
     {
-        float theta = (i + 0.5f) * h_angle;
-        float y = std::sin(-3.0f * v_angle);
+        float u = (float(i) + 0.5f) / 5.0f;
         vertices.push_back(Vertex3D{
-            .pos    = {0.0f,     y, 0.0f},
+            .pos    = {0.0f, -m_radius, 0.0f},
             .normal = {0.0f, -1.0f, 0.0f},
-            .uv     = {(float(i) + 0.5f) / 4.0f, 0.0f},
+            .uv     = {u, 0.0f},
             .col    = m_color,
         });
     }
 
+    // =========================================================================
+    // Indices -- 20 triangles total for a base icosahedron
+    //
+    //   5 top    triangles: ring0[i] -- ring1[i+1] -- ring1[i]
+    //   10 middle triangles: 2 per column
+    //   5 bottom triangles: ring2[i] -- ring2[i+1] -- ring3[i]
+    // =========================================================================
 
-    std::vector<uint16_t> indices;
-    // top triangles
-    for(uint16_t i = 0; i < 5; ++i)
+    // Top cap: 5 triangles connecting pole to upper belt
+    for (uint32_t i = 0; i < 5; ++i)
     {
-        indices.push_back(i);
-        indices.push_back(5 + ((i + 1) % 5));
-        indices.push_back(5 + i);
+        indices.push_back(i);           // ring 0 pole vertex i
+        indices.push_back(6 + i + 1);  // ring 1 vertex i+1
+        indices.push_back(6 + i);      // ring 1 vertex i
     }
 
-    //middle triangles
-    for(uint16_t i = 0; i < 5; ++i)
+    // Middle band: 10 triangles (2 per column)
+    for (uint32_t i = 0; i < 5; ++i)
     {
-        indices.push_back(5 + i);
-        indices.push_back(5 + ((i + 1) % 5));
-        indices.push_back(10 + i);
-        
-        indices.push_back(5 + ((i + 1) % 5));
-        indices.push_back(10 + ((i + 1) % 5));
-        indices.push_back(10 + i);
+        // Upper triangle of column (pointing down)
+        indices.push_back(6  + i);      // ring1[i]
+        indices.push_back(6  + i + 1);  // ring1[i+1]
+        indices.push_back(12 + i);      // ring2[i]
+
+        // Lower triangle of column (pointing up)
+        indices.push_back(6  + i + 1);  // ring1[i+1]
+        indices.push_back(12 + i + 1);  // ring2[i+1]
+        indices.push_back(12 + i);      // ring2[i]
     }
 
-    // bottom triangles
-    for(uint16_t i = 0; i < 5; ++i)
+    // Bottom cap: 5 triangles connecting lower belt to pole
+    for (uint32_t i = 0; i < 5; ++i)
     {
-        indices.push_back(10 + i);
-        indices.push_back(10 + ((i + 1) % 5));
-        indices.push_back(15 + i);
+        indices.push_back(12 + i);      // ring2[i]
+        indices.push_back(12 + i + 1);  // ring2[i+1]
+        indices.push_back(18 + i);      // ring3 pole vertex i
     }
 
-    // Subdivide triangles
-    auto midPoint = [&](Vertex3D a, Vertex3D b) -> Vertex3D
+    // =========================================================================
+    // Subdivision
+    //
+    // Each triangle is split into 4 by inserting midpoints on each edge.
+    // The midpoint is projected back onto the sphere (normalize then scale).
+    //
+    //        v1
+    //       /  \
+    //     m1----m3
+    //     / \  / \
+    //   v2---m2---v3
+    //
+    // UV midpoints are linearly interpolated -- this is an approximation but
+    // works well for small triangles after a few subdivision levels.
+    // The seam vertices (u=0 and u=1 at the same 3D position) cause some UV
+    // discontinuity at the seam even after subdivision, which is a fundamental
+    // limitation of cylindrical UV mapping on a closed surface.
+    // =========================================================================
+
+    auto midPoint = [&](const Vertex3D &a, const Vertex3D &b) -> Vertex3D
     {
-        Vector3f mid = ((a.pos + b.pos) * 0.5f).unit() * m_radius;
-        Vector2f uv  = (a.uv  + b.uv)  * 0.5f;
+        // Average positions then project onto sphere
+        Vector3f mid    = ((a.pos + b.pos) * 0.5f).unit(); // unit direction
+        Vector3f pos    = mid * m_radius;                   // scaled to radius
+
+        // Linear UV interpolation
+        Vector2f uv     = (a.uv + b.uv) * 0.5f;
 
         return Vertex3D{
-            .pos    = mid,
-            .normal = mid,
+            .pos    = pos,
+            .normal = mid,  // unit direction is correct sphere normal
             .uv     = uv,
             .col    = m_color,
         };
     };
 
-
-    for (int i = 0; i < m_subdivisions; ++i)
+    for (int s = 0; s < m_subdivisions; ++s)
     {
-        std::vector<Vertex3D> newVerts;
-        std::vector<uint16_t> newIndices;
+        std::vector<Vertex3D>  newVerts;
+        std::vector<uint32_t>  newIndices;
+        newVerts.reserve  (vertices.size() * 4);
+        newIndices.reserve(indices.size()  * 4);
 
         for (size_t j = 0; j < indices.size(); j += 3)
         {
-        // find 2 end vertices on the edges of the current row
-        //          v1           
-        //         /  \           
-        //        /    \        
-        //    m1 *------* m3  
-        //      /  \  /  \       
-        //    v2----*-----v3    
-        //          m2
-            auto addTriangle = [&](Vertex3D a, Vertex3D b, Vertex3D c)
+            const Vertex3D &v1 = vertices[indices[j]];
+            const Vertex3D &v2 = vertices[indices[j + 1]];
+            const Vertex3D &v3 = vertices[indices[j + 2]];
+
+            Vertex3D m1 = midPoint(v1, v2);
+            Vertex3D m2 = midPoint(v2, v3);
+            Vertex3D m3 = midPoint(v1, v3);
+
+            // Each sub-triangle gets its own 3 vertices (no sharing).
+            // Sharing would require a midpoint cache keyed on edge pairs --
+            // for a physics engine this simpler approach is fine and avoids
+            // the complexity of deduplication across UV seams.
+            auto addTri = [&](const Vertex3D &a, const Vertex3D &b, const Vertex3D &c)
             {
-                uint16_t base = static_cast<uint16_t>(newVerts.size());
+                uint32_t base = static_cast<uint32_t>(newVerts.size());
                 newVerts.push_back(a);
                 newVerts.push_back(b);
                 newVerts.push_back(c);
-
                 newIndices.push_back(base);
                 newIndices.push_back(base + 1);
                 newIndices.push_back(base + 2);
             };
 
-            auto v1 = vertices[indices[j]];
-            auto v2 = vertices[indices[j + 1]];
-            auto v3 = vertices[indices[j + 2]];
-
-            auto m1 = midPoint(v1, v2);
-            auto m2 = midPoint(v2, v3);
-            auto m3 = midPoint(v1, v3);
-
-            addTriangle(v1, m1, m3);
-            addTriangle(m1, v2, m2);
-            addTriangle(m1, m2, m3);
-            addTriangle(m3, m2, v3);
+            addTri(v1, m1, m3);
+            addTri(m1, v2, m2);
+            addTri(m1, m2, m3);
+            addTri(m3, m2, v3);
         }
-        vertices = newVerts;
-        indices = newIndices;
+
+        vertices = std::move(newVerts);
+        indices  = std::move(newIndices);
     }
 
-    m_vertices = vertices;
-    m_indices = indices;
+    m_vertices = std::move(vertices);
+    m_indices.clear();
+    m_indices.reserve(indices.size());
+    for (auto idx : indices)
+        m_indices.push_back(static_cast<uint32_t>(idx));
 
 }
 
@@ -468,7 +521,9 @@ void Icosphere::buildGeometry()
 
 Plane::Plane(Core &core, float size, Vector3f color, float tileUV)
     : Shape(core), m_size(size), m_color(color), m_tileUV(tileUV)
-{}
+{
+    m_material.useChecker = true;
+}
 
 void Plane::buildGeometry()
 {

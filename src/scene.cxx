@@ -37,9 +37,9 @@ void Scene::initializePhysics()
 
 void Scene::initializeLight()
 {
-    m_light.direction = {0.6f, -1.0f, 0.4f, 0.0f};  // angled sun
-    m_light.color     = {1.0f,  0.95f, 0.85f, 4.0f}; // warm white
-    m_light.ambient   = {0.1f,  0.1f,  0.15f, 0.0f}; // cool ambient
+    m_light.direction = {0.6f, -1.0f, -0.4f, 0.0f};  // angled sun
+    m_light.color     = {1.0f, 0.95f, 0.85f, 2.0f}; // warm white
+    m_light.ambient   = {0.1f,  0.1f, 0.15f, 0.0f}; // cool ambient
 }
 
 void Scene::addFloor(float width, float height)
@@ -54,7 +54,6 @@ void Scene::addFloor(float width, float height)
     auto floor = std::make_unique<Plane>(m_core, width, Vector3f(0.35f, 0.4f, 0.35f), height);
     floor->setPosition({0.0f, -1.5f, 0.0f});
     floor->upload();
-    
     m_shapes.push_back(std::move(floor));
     m_rigidBodies.push_back(std::move(floorBody));
     m_drawablesDirty = true;
@@ -75,6 +74,7 @@ void Scene::addCubeSphere(float x, float y, float z, float radius, int subDivisi
 
     // Rendering sphere
     auto sphere = std::make_unique<CubeSphere>(m_core, radius, subDivisions);
+    //sphere->setMaterial(Material::checker({1.0,1.0,1.0},{0.4,0.4,0.4},8.0)); // Matte floor
     sphere->setPosition({x, y, z});
     sphere->upload();
     
@@ -150,13 +150,13 @@ void Scene::handleInput(float deltaTime, const uint8_t *keys, int mouseX, int mo
         if (keys[SDL_SCANCODE_S])
             m_camera->processKeyboard(CameraMovement::Backward, deltaTime);
         if (keys[SDL_SCANCODE_A])
-            m_camera->processKeyboard(CameraMovement::Left, deltaTime);
+            m_camera->processKeyboard(CameraMovement::Left,     deltaTime);
         if (keys[SDL_SCANCODE_D])
-            m_camera->processKeyboard(CameraMovement::Right, deltaTime);
+            m_camera->processKeyboard(CameraMovement::Right,    deltaTime);
         if (keys[SDL_SCANCODE_E])
-            m_camera->processKeyboard(CameraMovement::Up, deltaTime);
+            m_camera->processKeyboard(CameraMovement::Up,       deltaTime);
         if (keys[SDL_SCANCODE_Q])
-            m_camera->processKeyboard(CameraMovement::Down, deltaTime);
+            m_camera->processKeyboard(CameraMovement::Down,     deltaTime);
     }
 
     if (mouseX != 0 || mouseY != 0)
@@ -182,7 +182,6 @@ void Scene::syncRenderables()
             shapeIdx++;  // Skip the floor shape
         }
     }
-
     // Sync dynamic bodies with shapes
     for (size_t bodyIdx = 0; bodyIdx < m_rigidBodies.size() && shapeIdx < m_shapes.size(); ++bodyIdx)
     {

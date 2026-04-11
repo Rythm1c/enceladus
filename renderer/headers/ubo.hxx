@@ -38,12 +38,11 @@ struct MaterialUBO
     float    roughness    = 0.5f;
     float    metallic     = 0.0f;
     float    ao           = 1.0f;
-    float    useChecker   = 1.0f;
+    float    useChecker   = 0.0f;
     Vector4f colorA       = {1.0f, 1.0f, 1.0f, 8.0f};
     Vector4f colorB       = {0.1f, 0.1f, 0.1f, 1.0f};
 };
 
-static_assert(sizeof(MaterialUBO) == 64,
-    "MaterialUBO must be exactly 64 bytes -- check std140 alignment");
+static_assert(sizeof(MaterialUBO) == 64, "MaterialUBO must be exactly 64 bytes -- check std140 alignment");
 
 #endif

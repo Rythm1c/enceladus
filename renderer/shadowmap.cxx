@@ -270,12 +270,11 @@ void ShadowMap::drawShadow(VkCommandBuffer cmd, const Drawable &drawable, const 
     if(drawable.indexCount > 0)
     {
         vkCmdBindIndexBuffer(cmd, drawable.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-
         vkCmdDrawIndexed(cmd, static_cast<uint32_t>(drawable.indexCount), 1, 0, 0, 0);
     }
     else
     {
-    vkCmdDraw(cmd, static_cast<uint32_t>(drawable.vertexCount), 1, 0, 0);
+        vkCmdDraw(cmd, static_cast<uint32_t>(drawable.vertexCount), 1, 0, 0);
     }
 }
 void ShadowMap::endRenderpass(VkCommandBuffer cmd)

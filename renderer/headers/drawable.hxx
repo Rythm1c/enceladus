@@ -10,8 +10,8 @@ struct Drawable{
     VkBuffer           indexBuffer;   // VK_NULL_HANDLE if none
     uint32_t           vertexCount;
     uint32_t           indexCount;
-    MaterialUBO        material;
     Mat4x4             model;
+    MaterialUBO        material;
 };
 
 #endif

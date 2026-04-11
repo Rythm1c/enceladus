@@ -6,17 +6,17 @@
 
 struct Material
 {
-    // ---- Checker (push constant) -------------------------------------------
-    Vector3f colorA       = {1.0f, 1.0f, 1.0f};
-    Vector3f colorB       = {0.1f, 0.1f, 0.1f};
-    float    checkerScale = 4.0f;
-    bool     useChecker   = false;
-
     // ---- PBR (UBO) ----------------------------------------------------------
     Vector3f albedo    = {1.0f, 1.0f, 1.0f};
     float    roughness = 0.5f;
     float    metallic  = 0.0f;
     float    ao        = 1.0f;
+
+    // ---- Checker board pattern -------------------------------------------
+    Vector3f colorA       = {1.0f, 1.0f, 1.0f};
+    Vector3f colorB       = {0.4f, 0.4f, 0.4f};
+    float    checkerScale = 8.0f;
+    bool     useChecker   = false;
 
     // ---- Produce the UBO struct for upload ---------------------------------
     MaterialUBO toUBO() const
@@ -39,7 +39,7 @@ struct Material
     // Plain solid colour with configurable roughness/metallic
     static Material solid(Vector3f color, float rough = 0.7f, float metal = 0.0f)
     {
-        Material m;
+        Material m{};
         m.colorA     = color;
         m.albedo     = color;
         m.roughness  = rough;
@@ -51,7 +51,7 @@ struct Material
     // Rubber/plastic: non-metal, moderately rough
     static Material rubber(Vector3f color)
     {
-        Material m;
+        Material m{};
         m.colorA     = color;
         m.albedo     = color;
         m.roughness  = 0.85f;
@@ -63,30 +63,31 @@ struct Material
     // Metal: high reflectance, albedo tints the reflection
     static Material metal(Vector3f color, float rough = 0.2f)
     {
-        Material m;
-        m.colorA     = color;
-        m.albedo     = color;
-        m.roughness  = rough;
-        m.metallic   = 1.0f;
-        m.useChecker = false;
-        return m;
+        return Material{
+        .albedo     = color,
+        .roughness  = rough,
+        .metallic   = 1.0f,
+        .colorA     = color,
+        .useChecker = false,
+        };
     }
 
     // Checkerboard: useful for visualising rotation
     static Material checker(Vector3f a, Vector3f b,
-                             float scale   = 8.0f,
-                             float rough   = 0.8f,
-                             float metal   = 0.0f)
+                            float scale   = 8.0f,
+                            float rough   = 0.8f,
+                            float metal   = 0.0f)
     {
-        Material m;
-        m.colorA       = a;
-        m.colorB       = b;
-        m.checkerScale = scale;
-        m.useChecker   = true;
-        m.albedo       = (a + b) * 0.5f; // average for UBO (overridden per-fragment)
-        m.roughness    = rough;
-        m.metallic     = metal;
-        return m;
+        return Material{
+        .albedo       = (a + b) * 0.5f, // average for UBO (overridden per-fragment)
+        .roughness    = rough,
+        .metallic     = metal,
+        .colorA       = a,
+        .colorB       = b,
+        .checkerScale = scale,
+        .useChecker   = true,
+        };
+        
     }
 
     // Stone/concrete: rough, non-metal

@@ -98,7 +98,6 @@ void Application::initializeVulkan()
         .bindingDescriptions   = {Vertex3D::getBindingDescription()},
         .attributeDescriptions = {attribDescs.begin(), attribDescs.end()},
         .pushConstantRanges    = {pushRange},
-        
     };
     m_pipeline = std::make_unique<Pipeline>(pipelineConfig);
 
@@ -258,9 +257,7 @@ void Application::renderFrame(Scene &scene)
     // Compute light space matrix
     auto light = scene.getLight();
     light.lightSpaceMatrix = m_shadowMap->computeLightSpaceMatrix(
-        Vector3f(light.direction.x, light.direction.y, light.direction.z),
-        Vector3f(0.0),
-        15.0f);
+        Vector3f(light.direction.x, light.direction.y, light.direction.z));
 
     uint32_t frameIndex = m_renderer->getFrame(
         m_swapchain->getHandle(),
@@ -307,6 +304,7 @@ void Application::renderFrame(Scene &scene)
             for (const auto &drawable : scene.getDrawables())
             {
                 m_renderer->bindMaterial(drawable.material, m_pipeline->getLayout());
+                //std::cout << drawable.material.useChecker << std::endl;
                 m_renderer->draw(drawable, *m_pipeline);
             }
         }

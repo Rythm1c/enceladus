@@ -20,6 +20,7 @@ layout(set = 0, binding = 1) uniform Light {
     vec4 direction;
     vec4 color;
     vec4 ambient;
+    vec4 cameraPos; // w unused
     mat4 lightSpaceMatrix;
 } light;
 

@@ -12,18 +12,19 @@ int main(int argc, char *argv[])
         // Initialize application (Vulkan, SDL, rendering pipeline)
         Application app("Enceladus - Vulkan | SDL2", WINDOW_WIDTH, WINDOW_HEIGHT);
 
-        // Create and setup scene (explicit scope so it's destroyed before app)
         {
             Scene scene(app.getCore(), WINDOW_WIDTH, WINDOW_HEIGHT);
 
             // Add game objects
             scene.addFloor(10.0f);
-            scene.addCubeSphere(-2.0f, 0.0f, -1.0f, 1.0f, 20.0f, 1.0f);
-            scene.addIcoSphere(1.0f, 0.0f, -1.0f, 1.0f, 3, 1.0f);
+            scene.addCubeSphere(-2.0f, 0.0f, -1.0f, 0.6f, 40.0f, 1.0f);
+            scene.addIcoSphere(1.0f, 0.0f, -1.0f, 0.5f, 3, 1.0f);
+            /*
             scene.addBox(5.0f, 0.0f, -2.0f, 0.5f, 0.5f, 0.5f, 2.0f);
-            scene.addBox(3.0f, 0.0f, -2.0f, 0.5f, 0.5f, 0.5f, 2.0f);
+            scene.addBox(3.0f, 0.0f, -2.0f, 0.5f, 0.5f, 0.5f, 2.0f); 
+            */
 
-            //app.toggleWireframe(); // Start in wireframe mode for debugging
+            // app.toggleWireframe(); // Start in wireframe mode for debugging
             // Run the main loop
             app.run(scene);
         

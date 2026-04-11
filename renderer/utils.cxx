@@ -1,5 +1,5 @@
-#include "../headers/utils.hxx"
-#include <../headers/constants.hxx>
+#include "headers/utils.hxx"
+#include "headers/constants.hxx"
 
 #include <fstream>
 #include <cstdint>   // Necessary for uint32_t

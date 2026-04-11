@@ -75,7 +75,7 @@ void Renderer::beginRenderPass(VkRenderPass renderpass, uint32_t index, VkExtent
     //   [0] colour  → black, fully opaque
     //   [1] depth   → 1.0 (far plane) so every real fragment passes the LESS test
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color        = {{0.0f, 0.0f, 0.0f, 1.0f}};
+    clearValues[0].color        = {{m_clearColor[0], m_clearColor[1], m_clearColor[2], 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassInfo{};
@@ -155,7 +155,6 @@ void Renderer::draw(const Drawable &drawable, const Pipeline &pipeline)
     if(drawable.indexCount > 0)
     {
         vkCmdBindIndexBuffer(cmd, drawable.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-
         vkCmdDrawIndexed(cmd, static_cast<uint32_t>(drawable.indexCount), 1, 0, 0, 0);
     }
     else

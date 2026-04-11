@@ -53,7 +53,7 @@ public:
 
     void setTransform(const Transform &t);
 
-    // converted to column major automatically so don't call it again
+    // converted to column major automatically so don't call transpose() again
     Mat4x4 getModel() { return m_model.toMat4x4().transpose(); }
 
     // ---- Material ----------------------------------------------------------
@@ -75,8 +75,8 @@ protected:
     Core                 &m_core;
     Buffer                m_vertexBuffer;
     Buffer                m_indexBuffer;
-    Transform             m_model;
-    Material              m_material;
+    Transform             m_model{};
+    Material              m_material{};
     std::vector<Vertex3D> m_vertices;  // filled by buildGeometry()
     std::vector<uint16_t> m_indices;
 
@@ -100,9 +100,9 @@ public:
      * @param colors   Per-vertex colours (RGB). Defaults to red/green/blue.
      */
     Triangle(
-        Core      &core,
+        Core            &core,
         Vector2f         position = {0.0f, 0.0f},
-        float            size     = 0.5f,
+        float            size     =  0.5f,
         Vector3f         colorA   = {1.0f, 0.0f, 0.0f},
         Vector3f         colorB   = {0.0f, 1.0f, 0.0f},
         Vector3f         colorC   = {0.0f, 0.0f, 1.0f});
@@ -163,9 +163,9 @@ public:
         int      subdivisions = 3,
         Vector3f color        = {-1.0f, -1.0f, -1.0f});
 private:
-    float    m_radius;
-    int      m_subdivisions;
-    Vector3f m_color;
+    float    m_radius       = 1.0f;
+    int      m_subdivisions = 3;
+    Vector3f m_color        = {-1.0f, -1.0f, -1.0f };
     void buildGeometry() override;
 };
 // =============================================================================
