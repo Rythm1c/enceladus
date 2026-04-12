@@ -71,7 +71,7 @@ private:
     std::unique_ptr<RenderPass>         m_renderPass;
     std::unique_ptr<ShadowMap>          m_shadowMap;
     std::unique_ptr<GlobalDescriptor>   m_globalDescriptor;
-    std::unique_ptr<MaterialDescriptor> m_materialDescriptor;
+    //std::unique_ptr<MaterialDescriptor> m_materialDescriptor;
     std::unique_ptr<Pipeline>           m_pipeline;
     std::unique_ptr<Pipeline>           m_wireframePipeline;
     std::unique_ptr<Renderer>           m_renderer;

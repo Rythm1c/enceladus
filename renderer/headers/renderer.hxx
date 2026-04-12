@@ -21,7 +21,7 @@ struct RendererConfig
     const std::vector<VkImageView> &swapChainImageViews;
     VkImageView                     depthImageView;
     GlobalDescriptor                &globalDescriptor;  // for per-frame UBO update + bind
-    MaterialDescriptor              &materialDescriptor;  // for per-frame UBO update + bind
+    //MaterialDescriptor              &materialDescriptor;  // for per-frame UBO update + bind
 
 };
 
@@ -30,7 +30,7 @@ class Renderer
 private:
     Core                        &m_core;
     GlobalDescriptor            &m_globalDescriptor;  // for per-frame UBO update + bind
-    MaterialDescriptor          &m_materialDescriptor;  // for per-frame UBO update + bind
+    //MaterialDescriptor          &m_materialDescriptor;  // for per-frame UBO update + bind
     VkRenderPass                 m_renderPass    = VK_NULL_HANDLE;
     uint32_t                     m_currentFrame  = 0;
     VkCommandPool                m_commandPool   = VK_NULL_HANDLE;
@@ -59,7 +59,7 @@ public:
 
     ~Renderer();
 
-    VkCommandBuffer getCommandBuffer() const { return m_commandBuffers[m_currentFrame]; }
+    VkCommandBuffer getCommandBuffer()   const { return m_commandBuffers[m_currentFrame]; }
 
     void clearColor(float r, float g, float b) { m_clearColor[0] = r; m_clearColor[1] = g; m_clearColor[2] = b; };
 
@@ -87,7 +87,7 @@ public:
      * Call once per shape, immediately before drawShape().
      * Only writes to the material buffer -- camera and light are untouched.
      */
-    void bindMaterial(const struct MaterialUBO &material, VkPipelineLayout layout);
+    void bindMaterial(class MaterialDescriptor &material, VkPipelineLayout layout);
 
     // Records draw commands for a shape (binds VBO, pushes constants, draws).
     void draw(const struct Drawable &drawable, const Pipeline &pipeline);

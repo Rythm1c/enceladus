@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.h>
 #include "../../math/headers/mat4.hxx"
+#include "descriptors.hxx"
 #include "material.hxx"
 
 struct Drawable{
@@ -11,7 +12,7 @@ struct Drawable{
     uint32_t           vertexCount;
     uint32_t           indexCount;
     Mat4x4             model;
-    MaterialUBO        material;
+    MaterialDescriptor &material;
 };
 
 #endif

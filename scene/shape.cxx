@@ -15,9 +15,11 @@
 Shape::Shape(Core &core, Vector2f position)
     : m_core(core),
       m_vertexBuffer(core),
-      m_indexBuffer(core) 
+      m_indexBuffer(core) ,
+      m_materialDescriptor(core)
 {
     m_model = Transform();
+    m_materialDescriptor.update(m_material.toUBO());
 }
 
 void Shape::upload()
@@ -53,7 +55,7 @@ Drawable Shape::getDrawData()
         .vertexCount      = static_cast<uint32_t>(m_vertices.size()),
         .indexCount       = static_cast<uint32_t>(m_indices.size()),
         .model            = getModel(),
-        .material         = m_material.toUBO(),
+        .material         = m_materialDescriptor,
     };
 }
 
@@ -521,9 +523,7 @@ void Icosphere::buildGeometry()
 
 Plane::Plane(Core &core, float size, Vector3f color, float tileUV)
     : Shape(core), m_size(size), m_color(color), m_tileUV(tileUV)
-{
-    m_material.useChecker = true;
-}
+{}
 
 void Plane::buildGeometry()
 {

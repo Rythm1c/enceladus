@@ -53,6 +53,7 @@ void Scene::addFloor(float width, float height)
     // Floor rendering shape
     auto floor = std::make_unique<Plane>(m_core, width, Vector3f(0.35f, 0.4f, 0.35f), height);
     floor->setPosition({0.0f, -1.5f, 0.0f});
+    floor->setMaterial(Material::checker({1.0,1.0,1.0},{0.4,0.4,0.4},4.0)); // Matte floor
     floor->upload();
     m_shapes.push_back(std::move(floor));
     m_rigidBodies.push_back(std::move(floorBody));
@@ -74,7 +75,6 @@ void Scene::addCubeSphere(float x, float y, float z, float radius, int subDivisi
 
     // Rendering sphere
     auto sphere = std::make_unique<CubeSphere>(m_core, radius, subDivisions);
-    //sphere->setMaterial(Material::checker({1.0,1.0,1.0},{0.4,0.4,0.4},8.0)); // Matte floor
     sphere->setPosition({x, y, z});
     sphere->upload();
     

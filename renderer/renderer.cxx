@@ -12,7 +12,7 @@
 Renderer::Renderer(RendererConfig &config)
     : m_core(config.core),
       m_globalDescriptor(config.globalDescriptor),
-      m_materialDescriptor(config.materialDescriptor),
+      //m_materialDescriptor(config.materialDescriptor),
       m_renderPass(config.renderPass)
 
 {
@@ -124,10 +124,9 @@ void Renderer::bindGlobalDescriptors(const CameraUBO &camera, const LightUBO &li
         0, nullptr);
 }
 
-void Renderer::bindMaterial(const MaterialUBO &material, VkPipelineLayout layout)
+void Renderer::bindMaterial(MaterialDescriptor &materialDescriptor, VkPipelineLayout layout)
 {
-    m_materialDescriptor.update(m_currentFrame, material);
-    VkDescriptorSet matSet = m_materialDescriptor.getSet(m_currentFrame);
+    VkDescriptorSet matSet = materialDescriptor.getSet();
     vkCmdBindDescriptorSets(
         m_commandBuffers[m_currentFrame],
         VK_PIPELINE_BIND_POINT_GRAPHICS,

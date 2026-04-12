@@ -52,11 +52,12 @@ private:
     void createPool();
     void createSetsAndBuffers();
 };
-
+// material doesn't change per frame, so we only need one buffer and one set
+// might change this later if i support animations or editable materials
 class MaterialDescriptor
 {
 public:
-    MaterialDescriptor(Core &core, uint32_t framesInFlight);
+    MaterialDescriptor(Core &core);
 
     MaterialDescriptor(const MaterialDescriptor &)            = delete;
     MaterialDescriptor &operator=(const MaterialDescriptor &) = delete;
@@ -65,21 +66,22 @@ public:
 
     ~MaterialDescriptor();
 
-    VkDescriptorSetLayout getLayout()            const { return m_layout;      }
-    VkDescriptorSet       getSet(uint32_t frame) const { return m_sets[frame]; }
+    static void createLayout(VkDevice device);
+    static VkDescriptorSetLayout getLayout()  { return s_layout; }
+    static void destroyLayout(VkDevice device) { if (s_layout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, s_layout, nullptr); }
 
-    void update(uint32_t frame, const MaterialUBO &material);
+    VkDescriptorSet getSet() const { return m_set; }
+
+    void update(const MaterialUBO &material);
 private:
     Core                        &m_core;
-    uint32_t                     m_framesInFlight;
 
-    VkDescriptorSetLayout        m_layout = VK_NULL_HANDLE;
-    VkDescriptorPool             m_pool;
-    std::vector<VkDescriptorSet> m_sets;
-    std::vector<Buffer>          m_materialBuffers;
+    static VkDescriptorSetLayout s_layout;
+    VkDescriptorPool             m_pool   = VK_NULL_HANDLE;
+    VkDescriptorSet              m_set    = VK_NULL_HANDLE;
+    Buffer                       m_materialBuffer;
 
-    void createLayout();
     void createPool();
-    void createSetsAndBuffers();
+    void createSetAndBuffer();
 };
 #endif

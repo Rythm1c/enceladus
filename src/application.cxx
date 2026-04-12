@@ -85,7 +85,7 @@ void Application::initializeVulkan()
     auto attribDescs = Vertex3D::getAttributeDescriptions();
 
     m_globalDescriptor  = std::make_unique<GlobalDescriptor>(*m_core, MAX_FRAMES_IN_FLIGHT, *m_shadowMap);
-    m_materialDescriptor = std::make_unique<MaterialDescriptor>(*m_core, MAX_FRAMES_IN_FLIGHT);
+    MaterialDescriptor::createLayout(m_core->getDevice());
 
     PipelineConfig pipelineConfig{
         .core                  = *m_core,
@@ -94,7 +94,7 @@ void Application::initializeVulkan()
         .vertShader            = &vertShader,
         .fragShader            = &fragShader,
         .globalDescLayout      = m_globalDescriptor->getLayout(),
-        .materialDescLayout    = m_materialDescriptor->getLayout(),
+        .materialDescLayout    = MaterialDescriptor::getLayout(),
         .bindingDescriptions   = {Vertex3D::getBindingDescription()},
         .attributeDescriptions = {attribDescs.begin(), attribDescs.end()},
         .pushConstantRanges    = {pushRange},
@@ -116,7 +116,7 @@ void Application::initializeVulkan()
         .swapChainImageViews = m_swapchain->getImageViews(),
         .depthImageView      = m_swapchain->getDepthView(),
         .globalDescriptor    = *m_globalDescriptor,
-        .materialDescriptor  = *m_materialDescriptor
+        //.materialDescriptor  = *m_materialDescriptor
     };
     m_renderer = std::make_unique<Renderer>(rendererConfig);
 }
@@ -135,12 +135,12 @@ void Application::shutdownVulkan()
 {
     // Destroy command buffers FIRST (they reference other resources)
     m_renderer.reset();
-    
+    MaterialDescriptor::destroyLayout(m_core->getDevice());
     // Then destroy the resources they were referencing
     m_pipeline.reset();
     m_wireframePipeline.reset();
     m_globalDescriptor.reset();
-    m_materialDescriptor.reset();
+    
     m_shadowMap.reset();
     m_renderPass.reset();
     m_swapchain.reset();
@@ -321,11 +321,12 @@ void Application::recreateSwapchain()
     // Wait for device to idle before recreating resources
     vkDeviceWaitIdle(m_core->getDevice());
 
+    MaterialDescriptor::destroyLayout(m_core->getDevice());
+
     // Destroy resources that depend on swapchain in reverse order
     m_renderer.reset();
     m_pipeline.reset();
     m_globalDescriptor.reset();
-    m_materialDescriptor.reset();
     m_renderPass.reset();
     m_swapchain.reset();
 
@@ -344,9 +345,7 @@ void Application::recreateSwapchain()
 
     auto attribDescs = Vertex3D::getAttributeDescriptions();
 
-    m_globalDescriptor = std::make_unique<GlobalDescriptor>(*m_core, MAX_FRAMES_IN_FLIGHT, *m_shadowMap);
-    m_materialDescriptor = std::make_unique<MaterialDescriptor>(*m_core, MAX_FRAMES_IN_FLIGHT);
-
+    //m_globalDescriptor = std::make_unique<GlobalDescriptor>(*m_core, MAX_FRAMES_IN_FLIGHT, *m_shadowMap);
     PipelineConfig pipelineConfig{
         .core                  = *m_core,
         .renderPass            = m_renderPass->getHandle(),
@@ -354,7 +353,7 @@ void Application::recreateSwapchain()
         .vertShader            = &vertShader,
         .fragShader            = &fragShader,
         .globalDescLayout      = m_globalDescriptor->getLayout(),
-        .materialDescLayout    = m_materialDescriptor->getLayout(),
+        .materialDescLayout    = MaterialDescriptor::getLayout(),
         .bindingDescriptions   = {Vertex3D::getBindingDescription()},
         .attributeDescriptions = {attribDescs.begin(), attribDescs.end()},
         .pushConstantRanges    = {pushRange},
@@ -375,7 +374,7 @@ void Application::recreateSwapchain()
         .swapChainImageViews = m_swapchain->getImageViews(),
         .depthImageView      = m_swapchain->getDepthView(),
         .globalDescriptor    = *m_globalDescriptor,
-        .materialDescriptor  = *m_materialDescriptor
+        //.materialDescriptor  = *m_materialDescriptor
     };
     m_renderer = std::make_unique<Renderer>(rendererConfig);
 

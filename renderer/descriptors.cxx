@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <array>
 
+VkDescriptorSetLayout MaterialDescriptor::s_layout = VK_NULL_HANDLE;
+
 GlobalDescriptor::GlobalDescriptor(Core &core, uint32_t framesInFlight, const ShadowMap &shadowMap)
     : m_core(core),
       m_framesInFlight(framesInFlight),
@@ -214,23 +216,22 @@ void GlobalDescriptor::updateLight(uint32_t frameIndex, const LightUBO &light)
 //--------------------------------------------------------------------------------
 // Material descriptor set
 //--------------------------------------------------------------------------------
-MaterialDescriptor::MaterialDescriptor(Core &core, uint32_t frameInFlight)
+MaterialDescriptor::MaterialDescriptor(Core &core)
     : m_core(core),
-    m_framesInFlight(frameInFlight)
+    m_materialBuffer(core)
 {
-    createLayout();
+    //createLayout();
     createPool();
-    createSetsAndBuffers();
+    createSetAndBuffer();
 }
-
 MaterialDescriptor::~MaterialDescriptor()
 {
     VkDevice device = m_core.getDevice();
     vkDestroyDescriptorPool     (device, m_pool,   nullptr);
-    vkDestroyDescriptorSetLayout(device, m_layout, nullptr);
+    //vkDestroyDescriptorSetLayout(device, m_layout, nullptr);
 }
 
-void MaterialDescriptor::createLayout()
+void MaterialDescriptor::createLayout(VkDevice device)
 {
     // binding 0: MaterialUBO -- fragment stage only
     // albedo, roughness, metallic, ao are only consumed by the BRDF in the fragment shader
@@ -245,7 +246,7 @@ void MaterialDescriptor::createLayout()
     info.bindingCount = 1;
     info.pBindings    = &materialBinding;
 
-    if (vkCreateDescriptorSetLayout(m_core.getDevice(), &info, nullptr, &m_layout) != VK_SUCCESS)
+    if (vkCreateDescriptorSetLayout(device, &info, nullptr, &s_layout) != VK_SUCCESS)
         throw std::runtime_error("MaterialDescriptor: vkCreateDescriptorSetLayout failed!");
 }
 
@@ -253,63 +254,62 @@ void MaterialDescriptor::createPool()
 {
     VkDescriptorPoolSize size{};
     size.type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    size.descriptorCount = m_framesInFlight;
+    size.descriptorCount = 1;
 
     VkDescriptorPoolCreateInfo info{};
     info.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     info.poolSizeCount = 1;
     info.pPoolSizes    = &size;
-    info.maxSets       = m_framesInFlight;
+    info.maxSets       = 1;
 
     if (vkCreateDescriptorPool(m_core.getDevice(), &info, nullptr, &m_pool) != VK_SUCCESS)
         throw std::runtime_error("MaterialDescriptor: vkCreateDescriptorPool failed!");
 }
 
-void MaterialDescriptor::createSetsAndBuffers()
+void MaterialDescriptor::createSetAndBuffer()
 {
     VkDevice device = m_core.getDevice();
 
-    std::vector<VkDescriptorSetLayout> layouts(m_framesInFlight, m_layout);
+   // std::vector<VkDescriptorSetLayout> layouts(m_framesInFlight, m_layout);
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool     = m_pool;
-    allocInfo.descriptorSetCount = m_framesInFlight;
-    allocInfo.pSetLayouts        = layouts.data();
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts        = &s_layout;
 
-    m_sets.resize(m_framesInFlight);
-    if (vkAllocateDescriptorSets(device, &allocInfo, m_sets.data()) != VK_SUCCESS)
+    //m_sets.resize(m_framesInFlight);
+    if (vkAllocateDescriptorSets(device, &allocInfo, &m_set) != VK_SUCCESS)
         throw std::runtime_error("MaterialDescriptor: vkAllocateDescriptorSets failed!");
 
-    m_materialBuffers.reserve(m_framesInFlight);
+    //m_materialBuffers.reserve(m_framesInFlight);
 
-    for (uint32_t i = 0; i < m_framesInFlight; ++i)
-    {
-        m_materialBuffers.emplace_back(m_core);
-        m_materialBuffers[i].create(sizeof(MaterialUBO),
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        m_materialBuffers[i].mapPersistent();
+    
+    //m_materialBuffer = Buffer(m_core);
+    m_materialBuffer.create(sizeof(MaterialUBO),
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    m_materialBuffer.mapPersistent();
 
-        VkDescriptorBufferInfo bufInfo{};
-        bufInfo.buffer = m_materialBuffers[i].get();
-        bufInfo.offset = 0;
-        bufInfo.range  = sizeof(MaterialUBO);
+    VkDescriptorBufferInfo bufInfo{};
+    bufInfo.buffer = m_materialBuffer.get();
+    bufInfo.offset = 0;
+    bufInfo.range  = sizeof(MaterialUBO);
 
-        VkWriteDescriptorSet write{};
-        write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet          = m_sets[i];
-        write.dstBinding      = 0;
-        write.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.descriptorCount = 1;
-        write.pBufferInfo     = &bufInfo;
+    VkWriteDescriptorSet write{};
+    write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet          = m_set;
+    write.dstBinding      = 0;
+    write.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write.descriptorCount = 1;
+    write.pBufferInfo     = &bufInfo;
 
-        vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
-    }
+    vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+    
 }
 
-void MaterialDescriptor::update(uint32_t frame, const MaterialUBO &material)
+void MaterialDescriptor::update(const MaterialUBO &material)
 {
     // Persistent mapping: this is just a memcpy into the mapped buffer.
     // HOST_COHERENT means the GPU sees the new data immediately with no flush.
-    m_materialBuffers[frame].uploadData(std::vector<MaterialUBO>{material});
+    m_materialBuffer.uploadData(std::vector<MaterialUBO>{material});
 }

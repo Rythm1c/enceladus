@@ -7,6 +7,7 @@
 #include "../../renderer/headers/vertex.hxx"
 #include "../../renderer/headers/drawable.hxx"
 #include "../../renderer/headers/material.hxx"
+#include "../../renderer/headers/descriptors.hxx"
 
 #include "../../math/headers/vec2.hxx"
 #include "../../math/headers/vec3.hxx"
@@ -60,6 +61,7 @@ public:
     void setMaterial(const Material &mat)
     {
         m_material = mat;
+        m_materialDescriptor.update(m_material.toUBO());
     }
 
     const Material &getMaterial() const { return m_material; }
@@ -77,6 +79,7 @@ protected:
     Buffer                m_indexBuffer;
     Transform             m_model{};
     Material              m_material{};
+    MaterialDescriptor    m_materialDescriptor;
     std::vector<Vertex3D> m_vertices;  // filled by buildGeometry()
     std::vector<uint16_t> m_indices;
 
