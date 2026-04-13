@@ -321,12 +321,12 @@ void Application::recreateSwapchain()
     // Wait for device to idle before recreating resources
     vkDeviceWaitIdle(m_core->getDevice());
 
-    MaterialDescriptor::destroyLayout(m_core->getDevice());
+    //MaterialDescriptor::destroyLayout(m_core->getDevice());
 
     // Destroy resources that depend on swapchain in reverse order
     m_renderer.reset();
     m_pipeline.reset();
-    m_globalDescriptor.reset();
+    //m_globalDescriptor.reset();
     m_renderPass.reset();
     m_swapchain.reset();
 
