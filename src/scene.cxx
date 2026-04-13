@@ -53,7 +53,7 @@ void Scene::addFloor(float width, float height)
     // Floor rendering shape
     auto floor = std::make_unique<Plane>(m_core, width, Vector3f(0.35f, 0.4f, 0.35f), height);
     floor->setPosition({0.0f, -1.5f, 0.0f});
-    floor->setMaterial(Material::checker({1.0,1.0,1.0},{0.4,0.4,0.4},4.0)); // Matte floor
+    floor->setMaterial(Material::checker({1.0,1.0,1.0},{0.4,0.4,0.4},1.0)); // Matte floor
     floor->upload();
     m_shapes.push_back(std::move(floor));
     m_rigidBodies.push_back(std::move(floorBody));
@@ -66,7 +66,7 @@ void Scene::addCubeSphere(float x, float y, float z, float radius, int subDivisi
     auto sphereBody = std::make_unique<RigidBody>();
     sphereBody->position   = Vector3f(x, y, z);
     sphereBody->collider   = Collider::makeSphere(radius);
-    sphereBody->restitution = 0.6f;
+    sphereBody->restitution = 0.8f;
     sphereBody->friction    = 0.4f;
     sphereBody->setMass(mass);
     
@@ -75,6 +75,7 @@ void Scene::addCubeSphere(float x, float y, float z, float radius, int subDivisi
 
     // Rendering sphere
     auto sphere = std::make_unique<CubeSphere>(m_core, radius, subDivisions);
+    sphere->setMaterial(Material::rubber({1.0f, 1.0f, 1.0f}));
     sphere->setPosition({x, y, z});
     sphere->upload();
     
@@ -97,6 +98,7 @@ void Scene::addIcoSphere(float x, float y, float z, float radius, int subDivisio
 
     // Rendering sphere
     auto sphere = std::make_unique<Icosphere>(m_core, radius, subDivisions);
+    sphere->setMaterial(Material::metal({1.0, 0.2, 0.1}, 0.6f)); // Red rubber
     sphere->setPosition({x, y, z});
     sphere->upload();
     
@@ -135,7 +137,7 @@ void Scene::update(float deltaTime, float aspect)
     Vector3f camPos   = m_camera->getPosition();
     m_light.cameraPos = Vector4f(camPos.x, camPos.y, camPos.z, 1.0f);
     // Update physics
-    // m_physicsWorld->step(deltaTime);
+    m_physicsWorld->step(deltaTime);
     
     // Sync render state with physics bodies
     syncRenderables();
