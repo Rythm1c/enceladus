@@ -28,16 +28,6 @@ void RigidBody::computeInertia()
         return;
     }
 
-    // Build a diagonal Mat3x3 from the three principal-axis inertias.
-    // Off-diagonal elements are zero because the local frame is aligned
-    // with the principal axes of the shape by definition.
-    //
-    // The diagonal entries come from standard analytic formulas:
-    //   Sphere:  I = 2/5 * m * r^2  (same on all three axes -- fully symmetric)
-    //   Box:     Ixx = 1/12 * m * (dy^2 + dz^2)  where d = full side length = 2*halfExtent
-    //
-    // Plate:     Plane bodies are always static, so this branch just zeroes out.
-
     float Ixx = 0.0f, Iyy = 0.0f, Izz = 0.0f;
 
     switch (collider.type)
@@ -111,25 +101,11 @@ void RigidBody::applyAngularImpulse(Vector3f impulse)
 {
     if(!hasFiniteMass()) return;
     wake();
-    // Δω = I_world^-1 * impulse
-    // This is a full matrix-vector multiply, not component-wise.
-    // The world-space tensor correctly accounts for the body's current rotation.
+
     angularVelocity += getWorldInvInertia() * impulse;
 }
 Mat3x3 RigidBody::getWorldInvInertia() const
 {
-    // Transform the local inverse inertia tensor into world space:
-    //   I_world_inv = R * I_local_inv * R^T
-    //
-    //   The local tensor is defined relative to the body's own axes.
-    //   When the body has rotated (R != identity), its local axes no longer
-    //   align with the world axes. Multiplying by R rotates the tensor
-    //   into world space so that the impulse (which is in world space)
-    //   correctly maps to the right angular velocity change.
-    //
-    // For static bodies or those with zero inertia, this returns a zero matrix,
-    // which correctly produces no angular velocity change from any impulse.
-
     Mat3x3 R = orientation.toMat3x3();
     return R * invInertiaTensor * R.transpose();
 }

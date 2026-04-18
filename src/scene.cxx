@@ -60,22 +60,26 @@ void Scene::addFloor(float width, float height)
     m_drawablesDirty = true;
 }
 
-void Scene::addCubeSphere(float x, float y, float z, float radius, int subDivisions, float mass)
+void Scene::addCubeSphere(float x, float y, float z, float radius, int subDivisions,const Material &material, float mass, bool isStatic)
 {
     // Physics body
     auto sphereBody = std::make_unique<RigidBody>();
     sphereBody->position   = Vector3f(x, y, z);
     sphereBody->collider   = Collider::makeSphere(radius);
-    sphereBody->restitution = 0.8f;
-    sphereBody->friction    = 0.4f;
-    sphereBody->setMass(mass);
+    if(isStatic){
+        sphereBody->makeStatic();
+    } else{
+        sphereBody->restitution = 0.8f;
+        sphereBody->friction    = 0.4f;
+        sphereBody->setMass(mass);
+    }
     
     RigidBody *bodyPtr = sphereBody.get();
     m_physicsWorld->addBody(bodyPtr);
 
     // Rendering sphere
     auto sphere = std::make_unique<CubeSphere>(m_core, radius, subDivisions);
-    sphere->setMaterial(Material::rubber({1.0f, 1.0f, 1.0f}));
+    sphere->setMaterial(material);
     sphere->setPosition({x, y, z});
     sphere->upload();
     
@@ -83,22 +87,26 @@ void Scene::addCubeSphere(float x, float y, float z, float radius, int subDivisi
     m_rigidBodies.push_back(std::move(sphereBody));
     m_drawablesDirty = true;
 }
-void Scene::addIcoSphere(float x, float y, float z, float radius, int subDivisions, float mass)
+void Scene::addIcoSphere(float x, float y, float z, float radius, int subDivisions,const Material &material, float mass, bool isStatic)
 {
     // Physics body
     auto sphereBody = std::make_unique<RigidBody>();
     sphereBody->position   = Vector3f(x, y, z);
     sphereBody->collider   = Collider::makeSphere(radius);
-    sphereBody->restitution = 0.6f;
-    sphereBody->friction    = 0.4f;
-    sphereBody->setMass(mass);
+    if(isStatic){
+        sphereBody->makeStatic();
+    } else{
+        sphereBody->restitution = 0.6f;
+        sphereBody->friction    = 0.4f;
+        sphereBody->setMass(mass);
+    }
     
     RigidBody *bodyPtr = sphereBody.get();
     m_physicsWorld->addBody(bodyPtr);
 
     // Rendering sphere
     auto sphere = std::make_unique<Icosphere>(m_core, radius, subDivisions);
-    sphere->setMaterial(Material::metal({1.0, 0.2, 0.1}, 0.6f)); // Red rubber
+    sphere->setMaterial(material);
     sphere->setPosition({x, y, z});
     sphere->upload();
     

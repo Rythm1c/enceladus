@@ -32,12 +32,9 @@ void PhysicsWorld::step(float dt)
     if (dt <= 0.0f)     return;
 
     integrate(dt);
-    const int iterations = 8;
 
-    for (int i = 0; i < iterations; ++i)
-    {
-        detectAndResolve();
-    }
+    detectAndResolve();
+
     clearForces();
 }
 
@@ -53,18 +50,12 @@ void PhysicsWorld::integrate(float dt)
         if (body->isSleeping)       continue; // sleeping bodies skip integration
 
         // ---- Linear integration (semi-implicit Euler) ----------------------
-        // accel = gravity + F/m
-        // velocity updated first (semi-implicit), then position uses new velocity
         Vector3f accel = m_gravity + body->forceAccum * body->invMass;
         body->linearVelocity += accel * dt;
         body->linearVelocity  = body->linearVelocity * std::pow(body->linearDamping, dt);
         body->position        = body->position + body->linearVelocity * dt;
 
-        // ---- Angular integration -------------------------------------------
-        // Angular acceleration = I_world^-1 * torque
-        // Uses the world-space inverse inertia tensor (full Mat3x3).
-        // This is the key improvement over the diagonal-only approach:
-        // the tensor is correctly transformed by the body's current rotation.
+        /* // ---- Angular integration -------------------------------------------
         Vector3f angAccel = body->getWorldInvInertia() * body->torqueAccum;
         body->angularVelocity += angAccel * dt;
         body->angularVelocity  = body->angularVelocity * std::pow(body->angularDamping, dt);
@@ -77,17 +68,9 @@ void PhysicsWorld::integrate(float dt)
             0.0f);
         Quat dq           = omegaQuat * body->orientation;
         body->orientation = body->orientation + (0.5f * dt) * dq;
-        body->orientation = body->orientation.unit(); // renormalise to prevent drift
+        body->orientation = body->orientation.unit(); // renormalise to prevent drift */
 
-        // ---- Sleep check ---------------------------------------------------
-        // If both linear and angular speeds are below the threshold,
-        // increment the sleep timer. If it exceeds SLEEP_TIME, put the body to sleep.
-        // Any applied force or impulse calls wake() to reset the timer.
-        //
-        // Why use a timer rather than checking once?
-        //   A body just settling can momentarily drop below the threshold
-        //   between bounces. Requiring N consecutive seconds prevents
-        //   falsely sleeping an object that's still in motion.
+        // ---- Sleep test ------------------------------------------------
         float linearSpeed  = body->linearVelocity.mag();
         float angularSpeed = body->angularVelocity.mag();
 
@@ -128,7 +111,7 @@ void PhysicsWorld::detectAndResolve()
             // (static bodies wake sleeping ones when another dynamic body hits them)
             if (a.isSleeping && b.isSleeping) continue;
 
-            CollisionManifold manifold = testCollision(a, b);
+            Contact manifold = testCollision(a, b);
             if (manifold.hasCollision)
             {
                 // Wake sleeping bodies that get hit

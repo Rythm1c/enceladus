@@ -6,6 +6,7 @@
 #include <cstdint>
 
 #include "../../renderer/headers/ubo.hxx"
+#include "../../renderer/headers/material.hxx"
 
 class  Camera;
 class  PhysicsWorld;
@@ -53,8 +54,8 @@ public:
 
     // ---- Scene setup (called before run()) --------- -----
     void addFloor(float width, float height = 10.0f);
-    void addCubeSphere(float x, float y, float z, float radius = 0.6f, int subDivisions = 3, float mass = 1.0f);
-    void addIcoSphere(float x, float y, float z, float radius = 0.6f, int subDivisions = 3, float mass = 1.0f);
+    void addCubeSphere(float x, float y, float z, float radius = 0.6f, int subDivisions = 3,const Material &material = Material::rubber({1.0f, 1.0f, 1.0f}), float mass = 1.0f, bool isStatic = false);
+    void addIcoSphere(float x, float y, float z, float radius = 0.6f, int subDivisions = 3, const Material &material = Material::stone({1.0f, 0.2f, 0.1f}), float mass = 1.0f, bool isStatic = false);
     void addBox(float x, float y, float z, float halfX = 0.5f, float halfY = 0.5f, float halfZ = 0.5f, float mass = 2.0f);
 
 private:
